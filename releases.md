@@ -1,8 +1,8 @@
 # Releases
 
-## Unreleased
+## v0.3.0
 
-  - Rename `agent.md` -> `agents.md`.
+  - Rename `agent.md` -\> `agents.md`.
 
 ## v0.2.0
 
