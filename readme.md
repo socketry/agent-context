@@ -1,6 +1,6 @@
 # Agent::Context
 
-Provides tools for installing and managing context files from Ruby gems for AI agents, and generating `agent.md` files following the <https://agent.md> specification.
+Provides tools for installing and managing context files from Ruby gems for AI agents, and generating `agents.md` files following the <https://agents.md> specification.
 
 [![Development Status](https://github.com/ioquatix/agent-context/workflows/Test/badge.svg)](https://github.com/ioquatix/agent-context/actions?workflow=Test)
 
@@ -8,7 +8,7 @@ Provides tools for installing and managing context files from Ruby gems for AI a
 
 This gem allows you to install and manage context files from other gems. Gems can provide context files in a `context/` directory in their root, which can contain documentation, configuration examples, migration guides, and other contextual information for AI agents.
 
-When you install context from gems, they are placed in the `.context/` directory and an `agent.md` file is generated or updated to provide a comprehensive overview for AI agents.
+When you install context from gems, they are placed in the `.context/` directory and an `agents.md` file is generated or updated to provide a comprehensive overview for AI agents.
 
 ## Quick Start
 
@@ -23,8 +23,8 @@ This workflow:
 
   - Adds the `agent-context` gem to your project.
   - Installs context files from all gems into `.context/`.
-  - Generates or updates `agent.md` with a comprehensive overview.
-  - Follows the <https://agent.md> specification for agentic coding tools.
+  - Generates or updates `agents.md` with a comprehensive overview.
+  - Follows the <https://agents.md> specification for agentic coding tools.
 
 ## Context
 
@@ -32,7 +32,7 @@ This gem provides its own context files in the `context/` directory, including:
 
   - `usage.md` - Comprehensive guide for using and providing context files.
 
-When you install context from other gems, they will be placed in the `.context/` directory and referenced in `agent.md`.
+When you install context from other gems, they will be placed in the `.context/` directory and referenced in `agents.md`.
 
 ## Usage
 
@@ -52,7 +52,7 @@ $ bundle add agent-context
 
 #### Install Context (Primary Command)
 
-Install context from all available gems and update `agent.md`:
+Install context from all available gems and update `agents.md`:
 
 ``` bash
 $ bake agent:context:install
@@ -88,10 +88,10 @@ $ bake agent:context:show --gem async --file thread-safety
 
 ## Version Control
 
-Both `.context/` and `agent.md` should be committed to git:
+Both `.context/` and `agents.md` should be committed to git:
 
-  - `agent.md` is user-facing documentation that should be versioned.
-  - `.context/` files are referenced by `agent.md` and needed for AI agents to function properly.
+  - `agents.md` is user-facing documentation that should be versioned.
+  - `.context/` files are referenced by `agents.md` and needed for AI agents to function properly.
   - This ensures AI agents in CI have access to the full context.
 
 ## Providing Context in Your Gem
@@ -124,65 +124,6 @@ files:
 ```
 
 If no `index.yaml` is provided, one will be generated automatically from your gemspec and markdown files.
-
-## AI Tool Integration
-
-The generated `agent.md` file can be integrated with various AI coding tools by creating symbolic links to their expected locations:
-
-### Cline
-
-``` bash
-ln -s agent.md .clinerules
-```
-
-### Claude Code
-
-``` bash
-ln -s agent.md CLAUDE.md
-```
-
-### Cursor
-
-First, create the `.cursor/rules` directory:
-
-``` bash
-mkdir -p .cursor/rules
-```
-
-Then create `.cursor/rules/agent.mdc` with:
-
-``` markdown
----
-alwaysApply: true
----
-Read the `agent.md` file in the project root directory for detailed context relating to this project and external dependencies.
-```
-
-This approach uses Cursor's proper front-matter format and directs the AI to consult the main `agent.md` file.
-
-### Gemini CLI, OpenAI Codex, OpenCode
-
-``` bash
-ln -s agent.md AGENTS.md
-```
-
-### GitHub Copilot
-
-``` bash
-ln -s ../../agent.md .github/copilot-instructions.md
-```
-
-### Replit
-
-``` bash
-ln -s agent.md .replit.md
-```
-
-### Windsurf
-
-``` bash
-ln -s agent.md .windsurfrules
-```
 
 ## Releases
 

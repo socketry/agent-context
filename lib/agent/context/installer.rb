@@ -182,7 +182,7 @@ module Agent
 				unless File.exist?(index_path)
 					# Generate dynamic index from gemspec
 					index = generate_dynamic_index(gem, gem_directory)
-				
+					
 					# Write the generated index
 					File.write(index_path, index.to_yaml)
 					Console.debug("Generated dynamic index for #{gem[:name]}: #{index_path}")

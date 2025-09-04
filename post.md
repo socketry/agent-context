@@ -28,11 +28,11 @@
 
 **Claude:** "So how does this work in practice?"
 
-**Ruby:** "Let me show you! When a developer runs `bake agent:context:install`, it scans all my installed gems for `context/` directories, copies the files to a `.context/` folder in their project, and generates an `agent.md` file that gives you a comprehensive overview."
+**Ruby:** "Let me show you! When a developer runs `bake agent:context:install`, it scans all my installed gems for `context/` directories, copies the files to a `.context/` folder in their project, and generates an `agents.md` file that gives you a comprehensive overview."
 
-**Claude:** "That sounds perfect! What does this `agent.md` file look like?"
+**Claude:** "That sounds perfect! What does this `agents.md` file look like?"
 
-**Ruby:** "It's structured and organized, following the AGENT.md specification. Here's what it generates:"
+**Ruby:** "It's structured and organized, following the AGENTS.md specification. Here's what it generates:"
 
 ```markdown
 # Agent
@@ -87,26 +87,26 @@ my-awesome-gem/
 
 **Claude:** "This is great, but how do I actually access this information? Different AI tools expect different file names and locations."
 
-**Ruby:** "Good question! The generated `agent.md` can be linked to whatever your tool expects:"
+**Ruby:** "Good question! The generated `agents.md` can be linked to whatever your tool expects:"
 
 **For Cursor:**
-Create `.cursor/rules/agent.mdc` with:
+Create `.cursor/rules/agents.mdc` with:
 
 ``` markdown
 ---
 alwaysApply: true
 ---
-Read the `agent.md` file in the project root directory for detailed context relating to this project and external dependencies.
+Read the `agents.md` file in the project root directory for detailed context relating to this project and external dependencies.
 ```
 
 **For GitHub Copilot:**
 ```bash
-ln -s ../../agent.md .github/copilot-instructions.md
+ln -s ../../agents.md .github/copilot-instructions.md
 ```
 
 **For Claude Code:**
 ```bash
-ln -s agent.md CLAUDE.md
+ln -s agents.md CLAUDE.md
 ```
 
 **Claude:** "Perfect! So developers can easily integrate this with their preferred AI tools."

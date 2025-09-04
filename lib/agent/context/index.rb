@@ -12,11 +12,11 @@ require "yaml"
 module Agent
 	# @namespace
 	module Context
-		# Represents an index for managing and generating agent.md files from context files.
+		# Represents an index for managing and generating agents.md files from context files.
 		# 
-		# This class provides functionality to update or create AGENT.md files following
-		# the AGENT.md specification for agentic coding tools. It can parse existing
-		# agent.md files, update the context section, and generate new files when needed.
+		# This class provides functionality to update or create AGENTS.md files following
+		# the AGENTS.md specification for agentic coding tools. It can parse existing
+		# agents.md files, update the context section, and generate new files when needed.
 		class Index
 			# Initialize a new index instance.
 			# @parameter context_path [String] The path to the context directory (default: ".context").
@@ -26,18 +26,18 @@ module Agent
 			
 			attr :context_path
 			
-			# Update or create an AGENT.md file in the project root with context section
-			# This follows the AGENT.md specification for agentic coding tools
-			def update_agent_md(agent_md_path = "agent.md")
+			# Update or create an AGENTS.md file in the project root with context section
+			# This follows the AGENTS.md specification for agentic coding tools
+			def update_agents_md(agents_md_path = "agents.md")
 				context_content = generate_context_section
 				
-				if File.exist?(agent_md_path)
-					update_existing_agent_md(agent_md_path, context_content)
+				if File.exist?(agents_md_path)
+					update_existing_agents_md(agents_md_path, context_content)
 				else
-					create_new_agent_md(agent_md_path, context_content)
+					create_new_agents_md(agents_md_path, context_content)
 				end
 				
-				Console.debug("Updated agent.md: #{agent_md_path}")
+				Console.debug("Updated agents.md: #{agents_md_path}")
 			end
 			
 			# Generate just the context section content (without top-level headers)
@@ -100,8 +100,8 @@ module Agent
 			
 			private
 			
-			def update_existing_agent_md(agent_md_path, context_content)
-				content = File.read(agent_md_path)
+			def update_existing_agents_md(agents_md_path, context_content)
+				content = File.read(agents_md_path)
 				
 				# Find the # Agent heading
 				agent_heading_line = find_agent_heading_line(content)
@@ -123,10 +123,10 @@ module Agent
 				end
 				
 				# Write the updated content back to file
-				File.write(agent_md_path, updated_content)
+				File.write(agents_md_path, updated_content)
 			end
 			
-			def create_new_agent_md(agent_md_path, context_content)
+			def create_new_agents_md(agents_md_path, context_content)
 				content = [
 					"# Agent",
 					"",
@@ -134,7 +134,7 @@ module Agent
 					"",
 					context_content,
 				].join("\n")
-				File.write(agent_md_path, content)
+				File.write(agents_md_path, content)
 			end
 			
 			def find_agent_heading_line(content)
