@@ -25,7 +25,7 @@ describe Agent::Context::Index do
 		
 		it "creates new AGENT.md when file doesn't exist" do
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			expect(File.exist?(agent_md_path)).to be == true
 			content = File.read(agent_md_path)
@@ -49,7 +49,7 @@ describe Agent::Context::Index do
 			File.write(agent_md_path, existing_content)
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "# Agent")
@@ -75,7 +75,7 @@ describe Agent::Context::Index do
 			File.write(agent_md_path, existing_content)
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "# Agent")
@@ -100,7 +100,7 @@ describe Agent::Context::Index do
 			File.write(agent_md_path, existing_content)
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "# Agent")
@@ -122,7 +122,7 @@ describe Agent::Context::Index do
 			File.write(File.join(gem_context_path, "README.md"), readme_content)
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "# Agent")
@@ -154,7 +154,7 @@ describe Agent::Context::Index do
 			File.write(File.join(gem_context_path, "getting-started.md"), "# Getting Started\n\nSome content.")
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "### example_gem")
@@ -184,7 +184,7 @@ describe Agent::Context::Index do
 			File.write(agent_md_path, existing_content)
 			
 			index = Agent::Context::Index.new(context_path)
-			index.update_agent_md(agent_md_path)
+			index.update_agents_md(agent_md_path)
 			
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "# Agent")

@@ -75,14 +75,14 @@ def install(gem: nil)
 		end
 	end
 	
-	# Update agent.md after installing context
+	# Update agents.md after installing context
 	index = Agent::Context::Index.new(@installer.context_path)
-	index.update_agent_md
+	index.update_agents_md
 end
 
-# Update or create AGENT.md in the project root with context section
-# This follows the AGENT.md specification for agentic coding tools
-def agent_md(path = "agent.md")
-	index = Agent::Context::Index.new(@helper.context_path)
-	index.update_agent_md(path)
+# Update or create AGENTS.md in the project root with context section
+# This follows the AGENTS.md specification for agentic coding tools
+def agents_md(path = "agents.md")
+	index = Agent::Context::Index.new(@installer.context_path)
+	index.update_agents_md(path)
 end
