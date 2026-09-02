@@ -89,6 +89,18 @@ describe Agent::Context::Installer do
 			expect(content).to be_nil
 		end
 		
+		it "handles a malformed context index" do
+			File.write(File.join(context_path, "index.yaml"), "invalid: yaml: content: [")
+			
+			helper = subject.new(specifications: @specifications)
+			gem = helper.find_gem_with_context("fake-gem")
+			index = helper.send(:ensure_gem_index, gem, context_path)
+			
+			expect(index["description"]).to be == "A fake gem for testing"
+			expect(index["metadata"]).to be == {}
+			expect(index["files"]).to be == []
+		end
+		
 		with "installation" do
 			let(:target_path) {Dir.mktmpdir}
 			
@@ -135,6 +147,20 @@ describe Agent::Context::Installer do
 				target_context_path = File.join(@target_path, ".agents", "context", "fake-gem")
 				expect(File).to be(:exist?, File.join(target_context_path, "getting-started.md"))
 				expect(File).to be(:exist?, File.join(target_context_path, "configuration.md"))
+			end
+			
+			it "generates metadata for minimally structured context" do
+				File.write(File.join(context_path, "notes.md"), "First paragraph.\n\nSecond paragraph.")
+				helper = subject.new(root: @target_path, specifications: @specifications)
+				
+				expect(helper.install_gem_context("fake-gem")).to be_truthy
+				
+				index_path = File.join(@target_path, ".agents", "context", "fake-gem", "index.yaml")
+				index = YAML.load_file(index_path)
+				notes = index["files"].find{|file| file["path"] == "notes.md"}
+				
+				expect(notes["title"]).to be == "Documentation"
+				expect(notes["description"]).to be == "First paragraph."
 			end
 		end
 	end
