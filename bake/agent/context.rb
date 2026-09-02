@@ -69,7 +69,7 @@ def install(gem: nil)
 		installed = @installer.install_all_context
 		if installed.any?
 			puts "Installed context from #{installed.length} gems:"
-			installed.each {|gem_name| puts "  #{gem_name}"}
+			installed.each{|gem_name| puts "\t#{gem_name}"}
 		else
 			puts "No gems with context found"
 		end

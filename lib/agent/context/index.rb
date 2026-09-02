@@ -277,7 +277,7 @@ module Agent
 			
 			def extract_title(lines)
 				# Look for the first markdown header
-				header_line = lines.find {|line| line.start_with?("#")}
+				header_line = lines.find{|line| line.start_with?("#")}
 				if header_line
 					# Remove markdown header syntax and clean up
 					header_line.sub(/^#+\s*/, "").strip

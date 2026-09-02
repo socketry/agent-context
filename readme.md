@@ -2,7 +2,7 @@
 
 Provides tools for installing and managing context files from Ruby gems for AI agents, and generating `agents.md` files following the <https://agents.md> specification.
 
-[![Development Status](https://github.com/ioquatix/agent-context/workflows/Test/badge.svg)](https://github.com/ioquatix/agent-context/actions?workflow=Test)
+[![Development Status](https://github.com/socketry/agent-context/workflows/Test/badge.svg)](https://github.com/socketry/agent-context/actions?workflow=Test)
 
 ## Overview
 
@@ -152,11 +152,27 @@ Please see the [project releases](https://ioquatix.github.io/agent-context/relea
 
 We welcome contributions to this project.
 
-1.  Fork it.
+1.  Fork the repository.
 2.  Create your feature branch (`git checkout -b my-new-feature`).
-3.  Commit your changes (`git commit -am 'Add some feature'`).
+3.  Commit your changes (`git commit -am 'Add some feature.'`).
 4.  Push to the branch (`git push origin my-new-feature`).
-5.  Create new Pull Request.
+5.  Create a new pull request.
+
+### Running Tests
+
+To run the test suite:
+
+``` bash
+$ bundle exec sus
+```
+
+### Making Releases
+
+To make a new release:
+
+``` bash
+$ bundle exec bake gem:release:patch # or minor or major
+```
 
 ### Developer Certificate of Origin
 
