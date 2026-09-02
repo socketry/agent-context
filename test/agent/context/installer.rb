@@ -10,7 +10,7 @@ require "tmpdir"
 require "fileutils"
 
 describe Agent::Context::Installer do
-	include_context Sus::Fixtures::Console::NullLogger
+	include Sus::Fixtures::Console::NullLogger
 	
 	with "fake gem with context" do
 		let(:gem_root) {Dir.mktmpdir}
