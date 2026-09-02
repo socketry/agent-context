@@ -9,6 +9,8 @@ require "fileutils"
 require "pathname"
 require "yaml"
 
+require_relative "paths"
+
 module Agent
 	module Context
 		# Installer class for managing context files from Ruby gems.
@@ -31,11 +33,12 @@ module Agent
 			# @parameter root [String] The root directory to work from (default: current directory).
 			# @parameter specifications [Gem::Specification] The gem specifications to search (default: all installed gems).
 			def initialize(root: Dir.pwd, specifications: ::Gem::Specification)
-				@root = root
-				@context_path = ".context"
+				@root = File.expand_path(root)
+				@context_path = File.join(@root, CONTEXT_PATH)
 				@specifications = specifications
 			end
 			
+			attr_reader :root
 			attr_reader :context_path
 			
 			# Find all gems that have a context directory
@@ -44,7 +47,7 @@ module Agent
 				
 				@specifications.each do |spec|
 					# Skip gems loaded from current working directory if requested:
-					next if skip_local && spec.full_gem_path == @root
+					next if skip_local && File.expand_path(spec.full_gem_path) == @root
 					
 					context_path = File.join(spec.full_gem_path, "context")
 					if Dir.exist?(context_path)

@@ -102,18 +102,20 @@ describe Agent::Context::Installer do
 			end
 			
 			it "can install context from a specific gem" do
-				helper = subject.new(specifications: @specifications)
-				helper.instance_variable_set(:@context_path, @target_path)
+				helper = subject.new(root: @target_path, specifications: @specifications)
 				
 				result = helper.install_gem_context("fake-gem")
 				expect(result).to be_truthy
 				
+				target_context_path = File.join(@target_path, ".agents", "context", "fake-gem")
+				expect(helper.context_path).to be == File.join(@target_path, ".agents", "context")
+				
 				# Check that files were copied
-				expect(File).to be(:exist?, File.join(@target_path, "fake-gem", "getting-started.md"))
-				expect(File).to be(:exist?, File.join(@target_path, "fake-gem", "configuration.md"))
+				expect(File).to be(:exist?, File.join(target_context_path, "getting-started.md"))
+				expect(File).to be(:exist?, File.join(target_context_path, "configuration.md"))
 				
 				# Check content
-				content = File.read(File.join(@target_path, "fake-gem", "getting-started.md"))
+				content = File.read(File.join(target_context_path, "getting-started.md"))
 				expect(content).to be == "# Getting Started\n\nThis is a test."
 			end
 			
@@ -124,15 +126,15 @@ describe Agent::Context::Installer do
 			end
 			
 			it "can install context from all gems" do
-				helper = subject.new(specifications: @specifications)
-				helper.instance_variable_set(:@context_path, @target_path)
+				helper = subject.new(root: @target_path, specifications: @specifications)
 				
 				installed = helper.install_all_context
 				expect(installed).to be(:include?, "fake-gem")
 				
 				# Check that files were copied
-				expect(File).to be(:exist?, File.join(@target_path, "fake-gem", "getting-started.md"))
-				expect(File).to be(:exist?, File.join(@target_path, "fake-gem", "configuration.md"))
+				target_context_path = File.join(@target_path, ".agents", "context", "fake-gem")
+				expect(File).to be(:exist?, File.join(target_context_path, "getting-started.md"))
+				expect(File).to be(:exist?, File.join(target_context_path, "configuration.md"))
 			end
 		end
 	end

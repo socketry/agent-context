@@ -32,7 +32,7 @@ A **Context Provider** is any software package, library, or module that includes
 
 A **Context Consumer** is any project or tool that utilizes contextual information from its dependencies. Context consumers:
 
-- Install context from their dependencies into a `.context/` directory.
+- Install context from their dependencies into a `.agents/context/` directory.
 - Use tools to discover and access available context.
 - Apply context based on file patterns and metadata.
 
@@ -75,9 +75,9 @@ package-root/
 └── package.json
 ```
 
-### 3.2 Consumer Directory: `.context/`
+### 3.2 Consumer Directory: `.agents/context/`
 
-Context consumers SHOULD create a `.context/` directory in their project root to store installed context. This directory:
+Context consumers SHOULD create a `.agents/context/` directory in their project root to store installed context. This directory:
 
 - **Location**: Must be at the project root (typically where package manifests are located).
 - **Purpose**: Contains context files copied from dependencies.
@@ -88,7 +88,7 @@ Context consumers SHOULD create a `.context/` directory in their project root to
 Example structure:
 ```
 project-root/
-├── .context/
+├── .agents/context/
 │   ├── package-a/
 │   │   ├── getting-started.md
 │   │   └── configuration.md
@@ -100,9 +100,9 @@ project-root/
 
 ### 3.3 Directory Separation Rationale
 
-The separation between `context/` and `.context/` serves several purposes:
+The separation between `context/` and `.agents/context/` serves several purposes:
 
-- **Ownership**: `context/` is controlled by the project itself, `.context/` contains external dependencies.
+- **Ownership**: `context/` is controlled by the project itself, `.agents/context/` contains external dependencies.
 - **Isolation**: Prevents conflicts between different packages' context files.
 - **Discoverability**: Makes it easy to find context for specific packages.
 - **Maintenance**: Allows independent management of provided vs. consumed context.
@@ -170,7 +170,7 @@ Context installation MUST follow these principles:
 
 ```
 FOR each package with context:
-  CREATE directory .context/package-name/
-  COPY all files recursively from package/context/ to .context/package-name/
+  CREATE directory .agents/context/package-name/
+  COPY all files recursively from package/context/ to .agents/context/package-name/
 END
 ```

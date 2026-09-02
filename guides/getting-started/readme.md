@@ -39,24 +39,24 @@ bake agent:context:list --gem async
 bake agent:context:show --gem async --file thread-safety
 ```
 
-## Understanding context/ vs .context/
+## Understanding context/ vs .agents/context/
 
 **Important distinction:**
 - **`context/`** (no dot) = Directory in gems that contains context files to share.
-- **`.context/`** (with dot) = Directory in your project where context gets installed.
+- **`.agents/context/`** (with dot) = Directory in your project where context gets installed.
 
 ### What happens when you install context?
 
 When you run `bake agent:context:install`, the tool:
 
 1. Scans all installed gems for `context/` directories (in the gem's root).
-2. Creates a `.context/` directory in your current project.
+2. Creates a `.agents/context/` directory in your current project.
 3. Copies context files organized by gem name.
 
 For example:
 ```
 your-project/
-├── .context/           # ← Installed context (with dot)
+├── .agents/context/           # ← Installed context (with dot)
 │   ├── async/          # ← From the 'async' gem's context/ directory
 │   │   ├── thread-safety.md
 │   │   └── performance.md
@@ -87,9 +87,9 @@ async-gem/
 
 ### Key Points for Users
 
-- Run `bake agent:context:install` to copy context to `.context/` (with dot).
-- The `.context/` directory is where installed context lives in your project.
-- Don't edit files in `.context/` - they get completely replaced when you reinstall.
+- Run `bake agent:context:install` to copy context to `.agents/context/` (with dot).
+- The `.agents/context/` directory is where installed context lives in your project.
+- Don't edit files in `.agents/context/` - they get completely replaced when you reinstall.
 
 ## Providing Context (For Gem Authors)
 
@@ -109,7 +109,7 @@ your-gem/
 └── your-gem.gemspec
 ```
 
-**Important:** This is different from `.context/` (with dot) which is where context gets installed in user projects.
+**Important:** This is different from `.agents/context/` (with dot) which is where context gets installed in user projects.
 
 #### 2. Add context files
 
@@ -186,4 +186,4 @@ Before publishing, test your context files:
 ## Summary
 
 - **`context/`** = source (in gems).
-- **`.context/`** = destination (in your project).
+- **`.agents/context/`** = destination (in your project).

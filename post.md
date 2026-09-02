@@ -28,7 +28,7 @@
 
 **Claude:** "So how does this work in practice?"
 
-**Ruby:** "Let me show you! When a developer runs `bake agent:context:install`, it scans all my installed gems for `context/` directories, copies the files to a `.context/` folder in their project, and generates an `agents.md` file that gives you a comprehensive overview."
+**Ruby:** "Let me show you! When a developer runs `bake agent:context:install`, it scans all my installed gems for `context/` directories, copies the files to a `.agents/context/` folder in their project, and generates an `agents.md` file that gives you a comprehensive overview."
 
 **Claude:** "That sounds perfect! What does this `agents.md` file look like?"
 
@@ -45,7 +45,7 @@ Context files from installed gems providing documentation and guidance for AI ag
 
 Code analysis for documentation generation.
 
-#### [Getting Started with Decode](.context/decode/getting-started.md)
+#### [Getting Started with Decode](.agents/context/decode/getting-started.md)
 
 The Decode gem provides programmatic access to Ruby code structure...
 
@@ -53,7 +53,7 @@ The Decode gem provides programmatic access to Ruby code structure...
 
 A fast and scalable test runner.
 
-#### [Using Sus Testing Framework](.context/sus/usage.md)
+#### [Using Sus Testing Framework](.agents/context/sus/usage.md)
 
 Sus is a modern Ruby testing framework...
 ```
