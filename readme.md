@@ -88,11 +88,11 @@ $ bake agent:context:show --gem async --file thread-safety
 
 ## Version Control
 
-Both `.agents/context/` and `agents.md` should be committed to git:
+The `.agents/` directory contains generated files and should be excluded from version control. The generated `agents.md` index should be committed:
 
   - `agents.md` is user-facing documentation that should be versioned.
-  - `.agents/context/` files are referenced by `agents.md` and needed for AI agents to function properly.
-  - This ensures AI agents in CI have access to the full context.
+  - `.agents/context/` can be restored by running `bake agent:context:install`.
+  - Ignoring the entire `.agents/` directory covers other generated agent resources too.
 
 ## Providing Context in Your Gem
 

@@ -82,7 +82,7 @@ Context consumers SHOULD create a `.agents/context/` directory in their project 
 - **Location**: Must be at the project root (typically where package manifests are located).
 - **Purpose**: Contains context files copied from dependencies.
 - **Organization**: Must organize context by package name in subdirectories.
-- **Exclusion**: SHOULD be excluded from version control (e.g., in `.gitignore`).
+- **Exclusion**: The generated `.agents/` directory SHOULD be excluded from version control (e.g., in `.gitignore`).
 - **Transient Nature**: Should contain only reproducible content that can be regenerated from installed packages and MUST NOT contain unique or modified files.
 
 Example structure:

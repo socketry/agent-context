@@ -89,6 +89,7 @@ async-gem/
 
 - Run `bake agent:context:install` to copy context to `.agents/context/` (with dot).
 - The `.agents/context/` directory is where installed context lives in your project.
+- Ignore the generated `.agents/` directory in version control.
 - Don't edit files in `.agents/context/` - they get completely replaced when you reinstall.
 
 ## Providing Context (For Gem Authors)
