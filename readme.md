@@ -8,7 +8,7 @@ Provides tools for installing and managing context files from Ruby gems for AI a
 
 This gem allows you to install and manage context files from other gems. Gems can provide context files in a `context/` directory in their root, which can contain documentation, configuration examples, migration guides, and other contextual information for AI agents.
 
-When you install context from gems, they are placed in the `.context/` directory and an `agents.md` file is generated or updated to provide a comprehensive overview for AI agents.
+When you install context from gems, they are placed in the `.agents/context/` directory and an `agents.md` file is generated or updated to provide a comprehensive overview for AI agents.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ $ bake agent:context:install
 This workflow:
 
   - Adds the `agent-context` gem to your project.
-  - Installs context files from all gems into `.context/`.
+  - Installs context files from all gems into `.agents/context/`.
   - Generates or updates `agents.md` with a comprehensive overview.
   - Follows the <https://agents.md> specification for agentic coding tools.
 
@@ -32,7 +32,7 @@ This gem provides its own context files in the `context/` directory, including:
 
   - `usage.md` - Comprehensive guide for using and providing context files.
 
-When you install context from other gems, they will be placed in the `.context/` directory and referenced in `agents.md`.
+When you install context from other gems, they will be placed in the `.agents/context/` directory and referenced in `agents.md`.
 
 ## Usage
 
@@ -88,11 +88,11 @@ $ bake agent:context:show --gem async --file thread-safety
 
 ## Version Control
 
-Both `.context/` and `agents.md` should be committed to git:
+The `.agents/` directory contains generated files and should be excluded from version control. The generated `agents.md` index should be committed:
 
   - `agents.md` is user-facing documentation that should be versioned.
-  - `.context/` files are referenced by `agents.md` and needed for AI agents to function properly.
-  - This ensures AI agents in CI have access to the full context.
+  - `.agents/context/` can be restored by running `bake agent:context:install`.
+  - Ignoring the entire `.agents/` directory covers other generated agent resources too.
 
 ## Providing Context in Your Gem
 

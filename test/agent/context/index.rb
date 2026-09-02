@@ -13,7 +13,7 @@ describe Agent::Context::Index do
 	
 	with "AGENT.md functionality" do
 		let(:temporary_directory) {Dir.mktmpdir}
-		let(:context_path) {File.join(temporary_directory, ".context")}
+		let(:context_path) {File.join(temporary_directory, ".agents", "context")}
 		let(:agent_md_path) {File.join(temporary_directory, "agent.md")}
 		
 		def around
@@ -128,7 +128,7 @@ describe Agent::Context::Index do
 			expect(content).to be(:include?, "# Agent")
 			expect(content).to be(:include?, "## Context")
 			expect(content).to be(:include?, "### example_gem")
-			expect(content).to be(:include?, "#### [Example Gem](.context/example_gem/README.md)")
+			expect(content).to be(:include?, "#### [Example Gem](.agents/context/example_gem/README.md)")
 			expect(content).to be(:include?, "This is an example gem that provides context for AI agents")
 		end
 		
@@ -159,7 +159,7 @@ describe Agent::Context::Index do
 			content = File.read(agent_md_path)
 			expect(content).to be(:include?, "### example_gem")
 			expect(content).to be(:include?, "A test gem with custom index")
-			expect(content).to be(:include?, "#### [Getting Started Guide](.context/example_gem/getting-started.md)")
+			expect(content).to be(:include?, "#### [Getting Started Guide](.agents/context/example_gem/getting-started.md)")
 			expect(content).to be(:include?, "Custom description from index")
 		end
 		
@@ -198,7 +198,7 @@ describe Agent::Context::Index do
 	
 	with "title and description extraction" do
 		let(:temporary_directory) {Dir.mktmpdir}
-		let(:context_path) {File.join(temporary_directory, ".context")}
+		let(:context_path) {File.join(temporary_directory, ".agents", "context")}
 		
 		def around
 			FileUtils.mkdir_p(context_path)
@@ -290,7 +290,7 @@ describe Agent::Context::Index do
 	
 	with "index.yaml handling" do
 		let(:temporary_directory) {Dir.mktmpdir}
-		let(:context_path) {File.join(temporary_directory, ".context")}
+		let(:context_path) {File.join(temporary_directory, ".agents", "context")}
 		
 		def around
 			FileUtils.mkdir_p(context_path)

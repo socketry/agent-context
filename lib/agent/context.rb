@@ -5,6 +5,7 @@
 # Copyright, 2025, by Samuel Williams.
 
 require_relative "context/version"
+require_relative "context/paths"
 require_relative "context/installer"
 require_relative "context/index"
 

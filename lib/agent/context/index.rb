@@ -5,7 +5,9 @@
 # Copyright, 2025, by Shopify Inc.
 
 require_relative "version"
+require_relative "paths"
 require "fileutils"
+require "pathname"
 require "yaml"
 
 # @namespace
@@ -19,12 +21,15 @@ module Agent
 		# agents.md files, update the context section, and generate new files when needed.
 		class Index
 			# Initialize a new index instance.
-			# @parameter context_path [String] The path to the context directory (default: ".context").
-			def initialize(context_path = ".context")
+			# @parameter context_path [String] The directory containing installed context.
+			# @parameter context_link_path [String] The path used for links from `agents.md`.
+			def initialize(context_path = CONTEXT_PATH, context_link_path: CONTEXT_PATH)
 				@context_path = context_path
+				@context_link_path = context_link_path
 			end
 			
 			attr :context_path
+			attr :context_link_path
 			
 			# Update or create an AGENTS.md file in the project root with context section
 			# This follows the AGENTS.md specification for agentic coding tools
@@ -74,7 +79,8 @@ module Agent
 						# Use files from index if available, otherwise fall back to parsing
 						if index["files"] && !index["files"].empty?
 							index["files"].each do |file_info|
-								sections << "#### [#{file_info['title']}](.context/#{gem_name}/#{file_info['path']})"
+								link_path = File.join(@context_link_path, gem_name, file_info["path"])
+								sections << "#### [#{file_info['title']}](#{link_path})"
 								sections << ""
 								sections << file_info["description"] if file_info["description"] && !file_info["description"].empty?
 								sections << ""
@@ -84,8 +90,9 @@ module Agent
 							files.each do |file_path|
 								if File.exist?(file_path)
 									title, description = extract_content(file_path)
-									relative_path = file_path.sub("#{@context_path}/", "")
-									sections << "#### [#{title}](.context/#{relative_path})"
+									relative_path = Pathname.new(file_path).relative_path_from(Pathname.new(@context_path))
+									link_path = File.join(@context_link_path, relative_path.to_s)
+									sections << "#### [#{title}](#{link_path})"
 									sections << ""
 									sections << description if description && !description.empty?
 									sections << ""
