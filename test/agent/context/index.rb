@@ -194,6 +194,30 @@ describe Agent::Context::Index do
 			expect(content).to be(:include?, "No context files found")
 			expect(content).not.to be(:include?, "Old context content here")
 		end
+		
+		it "only finds context sections under the Agent heading" do
+			existing_content = <<~MARKDOWN
+				# Agent
+				
+				Agent instructions.
+				
+				# Project
+				
+				## Context
+				
+				Project context.
+			MARKDOWN
+			
+			File.write(agent_md_path, existing_content)
+			
+			index = Agent::Context::Index.new(context_path)
+			index.update_agents_md(agent_md_path)
+			
+			content = File.read(agent_md_path)
+			expect(content.scan("## Context").length).to be == 2
+			expect(content).to be(:include?, "Project context.")
+			expect(content).to be(:include?, "No context files found")
+		end
 	end
 	
 	with "title and description extraction" do
