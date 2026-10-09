@@ -107,7 +107,7 @@ $ bake agent:context:skill:install
 $ bake agent:context:skill:install --gem provider --skill provider-workflow
 ```
 
-`agent-context` includes skill discovery and installation directly. To migrate from the deprecated `agent-skills` gem, replace it with `agent-context` in your Gemfile and use `agent:context:skill:*` commands.
+`agent-context` includes skill discovery and installation directly. Use it for Ruby dependency skills; the standalone `agent-skills` gem is deprecated.
 
 ## Version Control
 
@@ -164,13 +164,13 @@ Follow these instructions.
 
 `context/workflow.md` from gem `provider` becomes `.agents/skills/provider-workflow/SKILL.md`. Resources in `context/workflow/` are copied alongside the instructions. Installed names have a 64-character limit; descriptions have a 1,024-character limit. The generated instructions include additional skill metadata.
 
-Skills are discovered through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. To migrate a `skills/<name>/SKILL.md` bundle, move its instructions to `context/<name>.md`, add `type: skill` to the front matter, and move its resources to `context/<name>/`. Installed skill names become package-prefixed.
+Skills are discovered through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. Installed skill names become package-prefixed.
 
 ## Ownership and Updates
 
 Skills use the shared version-two JSON ownership index at `.agents/skills/.agent-context-skills.json`. Owners record ecosystem, package, and version. Ruby refreshes reconcile gem-owned skills. Skill updates use staged replacements with rollback on failure. A full refresh removes stale gem-owned skills, including skills from removed or empty providers.
 
-Legacy Ruby YAML ownership and version-one Cargo JSON ownership migrate to the shared format. Ruby's legacy ownership file is retired after successful installation.
+Version-one Cargo JSON ownership migrates to the shared format.
 
 See [the portable specification](specification.md) and [Getting Started](guides/getting-started/readme.md).
 

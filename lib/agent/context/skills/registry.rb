@@ -6,7 +6,6 @@
 
 require "fileutils"
 require "json"
-require "yaml"
 require "tempfile"
 
 module Agent
@@ -22,12 +21,11 @@ module Agent
 				class Invalid < StandardError
 				end
 				
-				# Load shared ownership and import legacy Ruby ownership.
+				# Load shared skill ownership.
 				# @parameter path [String] The shared ownership index.
 				def initialize(path)
 					@path = path
 					@data = load_data
-					import_legacy_ruby
 				end
 				
 				# @attribute [String] The path of the shared ownership index.
@@ -97,30 +95,6 @@ module Agent
 					data
 				rescue JSON::ParserError => error
 					raise Invalid, "Invalid skill ownership index #{@path}: #{error.message}"
-				end
-				
-				def import_legacy_ruby
-					legacy_path = File.join(File.dirname(@path), ".agent-skills.yaml")
-					return unless File.exist?(legacy_path) || File.symlink?(legacy_path)
-					raise Invalid, "Legacy skill registry must be a regular file: #{legacy_path}" unless File.lstat(legacy_path).file?
-					legacy = YAML.safe_load_file(legacy_path, aliases: false)
-					unless legacy.is_a?(Hash) && legacy["version"] == 1 && legacy["skills"].is_a?(Hash)
-						raise Invalid, "Invalid legacy skill registry: #{legacy_path}"
-					end
-					legacy["skills"].each do |name, owner|
-						unless owner.is_a?(Hash) && owner["gem"].is_a?(String) && owner["version"].is_a?(String)
-							raise Invalid, "Invalid legacy owner for #{name.inspect}"
-						end
-						converted = {"ecosystem" => "gem", "package" => owner["gem"], "version" => owner["version"]}
-						existing = owners[name]
-						if existing && existing.values_at("ecosystem", "package") != converted.values_at("ecosystem", "package")
-							raise Invalid, "Conflicting legacy ownership for #{name.inspect}"
-						end
-						owners[name] ||= converted
-					end
-					validate_owners(owners)
-				rescue Psych::Exception => error
-					raise Invalid, "Invalid legacy skill registry #{legacy_path}: #{error.message}"
 				end
 				
 				def validate_owners(owners)

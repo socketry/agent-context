@@ -200,7 +200,6 @@ module Agent
 						FileUtils.mkdir_p([staged, backups])
 						definitions.each{|definition| definition.write_to(File.join(staged, definition.name))}
 						changes = []
-						legacy = File.join(@skills_path, ".agent-skills.yaml")
 						begin
 							exclusion.apply
 							(names + stale).each do |name|
@@ -211,7 +210,6 @@ module Agent
 								changes << [name, previous]
 								File.rename(File.join(staged, name), destination) if names.include?(name)
 							end
-							File.rename(legacy, File.join(stage, "legacy.yaml")) if File.exist?(legacy)
 							registry.save
 						rescue
 							changes.reverse_each do |name, previous|
@@ -219,7 +217,6 @@ module Agent
 								FileUtils.rm_rf(destination)
 								File.rename(File.join(backups, name), destination) if previous
 							end
-							File.rename(File.join(stage, "legacy.yaml"), legacy) if File.exist?(File.join(stage, "legacy.yaml"))
 							exclusion.restore
 							raise
 						end

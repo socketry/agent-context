@@ -267,32 +267,6 @@ describe Agent::Context::Skills::Installer do
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 	end
 	
-	it "replaces legacy owned bundle names with context-declared skill names" do
-		legacy_root = File.join(consumer_root, ".agents/skills/ruby-testing")
-		FileUtils.mkdir_p(legacy_root)
-		File.write(File.join(legacy_root, "SKILL.md"), "Legacy instructions")
-		legacy = File.join(consumer_root, ".agents/skills/.agent-skills.yaml")
-		File.write(legacy, {"version" => 1, "skills" => {"ruby-testing" => {"gem" => "fake-gem", "version" => "1.0.0"}}}.to_yaml)
-		expect(installer.install(gem: "fake-gem")).to be == ["fake-gem-ruby-testing"]
-		expect(File).not.to be(:exist?, legacy_root)
-		expect(File).not.to be(:exist?, legacy)
-		expect(File).to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing/SKILL.md"))
-	end
-	
-	it "migrates legacy Ruby ownership without resurrecting removed skills" do
-		installer.install
-		shared = File.join(consumer_root, ".agents/skills", Agent::Context::Skills::Registry::FILE_NAME)
-		File.delete(shared)
-		legacy = File.join(consumer_root, ".agents/skills/.agent-skills.yaml")
-		File.write(legacy, {"version" => 1, "skills" => {"fake-gem-ruby-testing" => {"gem" => "fake-gem", "version" => "1.0.0"}}}.to_yaml)
-		FileUtils.rm_rf(File.join(provider_root, "context"))
-		installer.install
-		installer.install
-		expect(File).not.to be(:exist?, legacy)
-		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
-		expect(Agent::Context::Skills::Registry.new(shared).owners).to be == {}
-	end
-	
 	it "rejects nested skill declarations outside a skill resource directory" do
 		context = File.join(provider_root, "context/nested")
 		FileUtils.mkdir_p(context)
@@ -314,7 +288,7 @@ describe Agent::Context::Skills::Installer do
 		expect(content).not.to be(:include?, "  é")
 	end
 	
-	it "restores skills, legacy ownership, and exclusions when the registry commit fails" do
+	it "restores skills, ownership, and exclusions when the registry commit fails" do
 		system("git", "init", "--quiet", consumer_root, exception: true)
 		write_skill(provider_root, "documentation", description: "Write docs.")
 		installer.install
@@ -324,9 +298,6 @@ describe Agent::Context::Skills::Installer do
 		previous_exclude = File.read(exclude)
 		destination = File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing/SKILL.md")
 		previous_instructions = File.read(destination)
-		legacy = File.join(consumer_root, ".agents/skills/.agent-skills.yaml")
-		legacy_content = {"version" => 1, "skills" => {"fake-gem-ruby-testing" => {"gem" => "fake-gem", "version" => "1.0.0"}}}.to_yaml
-		File.write(legacy, legacy_content)
 		write_skill(provider_root, "ruby-testing", description: "Updated workflow.", body: "# Updated\n")
 		File.delete(File.join(provider_root, "context/documentation.md"))
 		mock(File).before(:rename) do |_source, target|
@@ -338,7 +309,6 @@ describe Agent::Context::Skills::Installer do
 		expect(File.read(registry)).to be == previous_registry
 		expect(File.read(exclude)).to be == previous_exclude
 		expect(File.read(destination)).to be == previous_instructions
-		expect(File.read(legacy)).to be == legacy_content
 		expect(File).to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-documentation/SKILL.md"))
 	end
 	

@@ -187,9 +187,7 @@ Follow the setup instructions.
 
 Include the complete source directories in your gem's packaged files. Skill documents and resource trees are installed under `.agents/skills/`.
 
-## Migrating from Agent Skills
-
-Skill discovery and installation are built into `agent-context`. Replace the `agent-skills` dependency in your Gemfile with `agent-context`, then run `bundle install`. Use `agent:context:skill:*` in place of `agent:skills:*`. Move existing `skills/<name>/SKILL.md` instructions to `context/<name>.md`, add `type: skill` to the front matter, and move their resources to `context/<name>/`. Installed names become package-prefixed. Ownership from `.agent-skills.yaml` migrates automatically during installation.
+## Ownership and Updates
 
 Skills use `.agents/skills/.agent-context-skills.json` to record dependency ownership. Full Ruby refreshes reconcile gem-owned skills and remove stale entries. A selected-skill install updates the selected skill. Skill updates use staged replacements with rollback on failure.
 

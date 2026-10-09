@@ -77,23 +77,4 @@ describe Agent::Context::Skills::Registry do
 			end.to raise_exception(subject::Invalid)
 		end
 	end
-	
-	it "rejects malformed and conflicting legacy Ruby ownership" do
-		legacy = File.join(temporary_directory, ".agent-skills.yaml")
-		[
-			"invalid: [yaml",
-			{"version" => 99, "skills" => {}}.to_yaml,
-			{"version" => 1, "skills" => {"workflow" => {"gem" => nil, "version" => "1.0.0"}}}.to_yaml,
-		].each do |content|
-			File.write(legacy, content)
-			expect do
-				subject.new(registry_path)
-			end.to raise_exception(subject::Invalid)
-		end
-		File.write(registry_path, {"version" => 2, "skills" => {"workflow" => {"ecosystem" => "cargo", "package" => "provider", "version" => "1.0.0"}}}.to_json)
-		File.write(legacy, {"version" => 1, "skills" => {"workflow" => {"gem" => "provider", "version" => "1.0.0"}}}.to_yaml)
-		expect do
-			subject.new(registry_path)
-		end.to raise_exception(subject::Invalid)
-	end
 end

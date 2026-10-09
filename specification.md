@@ -224,6 +224,6 @@ Ruby gems use `ecosystem: gem`; Cargo crates use `ecosystem: cargo`. Each instal
 
 Existing unowned destinations and destinations owned by another ecosystem or package MUST NOT be replaced. Installers MUST validate the selected sources and collisions, stage skill files, and preserve the previous directories and ownership index when copying or committing a replacement fails. Shared index writes MUST use atomic replacement.
 
-Version-one JSON ownership has implicit Cargo ownership and MUST migrate to version two when rewritten. Ruby consumers SHOULD import the legacy `.agent-skills.yaml` registry, rejecting ownership conflicts. The legacy Ruby registry MUST be retired after a successful migration so removed skills cannot be re-imported.
+Version-one JSON ownership has implicit Cargo ownership and MUST migrate to version two when rewritten.
 
 Git integrations SHOULD maintain one marked exclusion block covering generated context, ownership files, and exact dependency-owned skill directories from all ecosystems. They MUST preserve user rules and leave repository-owned instructions and skills trackable.
