@@ -25,6 +25,10 @@ bake agent:context:skill:show --gem provider --skill provider-workflow
 
 The main install command installs ordinary context and skills. The skill commands use installed, package-prefixed names for context-declared skills. The former `agent:skills:*` commands are removed.
 
+## Migrating from Agent Skills
+
+Skill discovery and installation are built into `agent-context`. Replace the `agent-skills` dependency in your Gemfile with `agent-context`, then run `bundle install`. Use `agent:context:skill:*` in place of `agent:skills:*`. Move existing `skills/<name>/SKILL.md` instructions to `context/<name>.md`, add `type: skill` to the front matter, and move their resources to `context/<name>/`. Installed names become package-prefixed. Ownership from `.agent-skills.yaml` migrates automatically during installation.
+
 ## Provider Layout
 
 Put ordinary guides in the packaged gem's top-level `context/` directory. Use a clear heading and first prose sentence. An optional YAML `description` overrides the summary. A provider-authored `index.yaml` can still control ordering, titles, and descriptions.
@@ -42,7 +46,7 @@ description: Follow the workflow when setting up this package.
 Follow the setup instructions.
 ```
 
-`context/workflow.md` in gem `provider` installs as `provider-workflow/SKILL.md`. The matching `context/workflow/` directory supplies resources. Additional skill metadata is preserved. Installed names must use lowercase ASCII letters, digits and single hyphens, with at most 64 characters. Descriptions must contain 1–1,024 characters. Existing `skills/<name>/SKILL.md` bundles retain their declared names.
+`context/workflow.md` in gem `provider` installs as `provider-workflow/SKILL.md`. The matching `context/workflow/` directory supplies resources. Additional skill metadata is preserved. Installed names must use lowercase ASCII letters, digits and single hyphens, with at most 64 characters. Descriptions must contain 1–1,024 characters.
 
 Include the complete source directories in your gem's packaged files. Skill documents and resource trees are installed only as skills.
 

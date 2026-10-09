@@ -26,7 +26,7 @@ bake agent:context:skill:install
 bake agent:context:skill:install --gem provider --skill provider-workflow
 ```
 
-The former `agent:skills:*` commands are removed. Skills use the `agent:context:skill:*` namespace.
+`agent-context` includes skill discovery and installation directly; the separate `agent-skills` gem is deprecated and is no longer needed. Remove it from your Gemfile. Replace the former `agent:skills:*` commands with `agent:context:skill:*`.
 
 ## Agent Instructions and Version Control
 
@@ -54,7 +54,7 @@ Follow these instructions.
 
 `context/workflow.md` from gem `provider` becomes `.agents/skills/provider-workflow/SKILL.md`. Resources in `context/workflow/` are copied alongside the instructions. Skill sources and resources are excluded from ordinary context and its index. Installed names have a 64-character limit; descriptions have a 1,024-character limit. Additional skill metadata is preserved.
 
-Existing `skills/<name>/SKILL.md` bundles are also supported through the `agent-skills` installation library. Their declared names are preserved. Ensure both `context/**/*` and any `skills/**/*` are included in your gem's file list.
+Skills are discovered only through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. To migrate a `skills/<name>/SKILL.md` bundle, move its instructions to `context/<name>.md`, add `type: skill` to the front matter, and move its resources to `context/<name>/`. Installed skill names become package-prefixed.
 
 Providers can retain `context/index.yaml` to control guide ordering and metadata. Explicit entries take precedence, missing and skill-only entries are skipped, and unlisted guides are appended.
 

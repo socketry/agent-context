@@ -94,7 +94,7 @@ describe Agent::Context::Index do
 		system("git", "init", "--quiet", directory, exception: true)
 		exclude = File.join(directory, ".git", "info", "exclude")
 		File.write(exclude, "user-rule\n")
-		registry = Agent::Skills::Registry.new(File.join(directory, ".agents", "skills", Agent::Skills::Registry::FILE_NAME))
+		registry = Agent::Context::Skills::Registry.new(File.join(directory, ".agents", "skills", Agent::Context::Skills::Registry::FILE_NAME))
 		registry.claim("cargo-workflow", "provider", "1.0", ecosystem: "cargo")
 		registry.save
 		index.update_index

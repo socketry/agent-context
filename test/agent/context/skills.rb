@@ -58,7 +58,7 @@ describe Agent::Context::Installer do
 		File.write(File.join(provider, "context/guide.md"), "---\ndescription: [broken\n---\n\n# Guide")
 		expect do
 			installer.install
-		end.to raise_exception(Agent::Skills::Installer::InvalidSkill)
+		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		expect(File).not.to be(:exist?, File.join(consumer, ".agents/skills/provider-workflow"))
 	end
 	

@@ -13,7 +13,7 @@ require "tmpdir"
 require_relative "paths"
 require_relative "document"
 require_relative "index"
-require "agent/skills/installer"
+require "agent/context/skills/installer"
 
 module Agent
 	module Context
@@ -40,7 +40,7 @@ module Agent
 				@root = File.expand_path(root)
 				@context_path = File.join(@root, CONTEXT_PATH)
 				@specifications = specifications.to_a
-				@skills = Agent::Skills::Installer.new(root: @root, specifications: @specifications)
+				@skills = Agent::Context::Skills::Installer.new(root: @root, specifications: @specifications)
 			end
 			
 			attr_reader :root
@@ -94,7 +94,7 @@ module Agent
 				gem = find_gem_with_context(gem_name)
 				return nil unless gem
 				
-				skill_paths = Array(@skills.list_skills(gem_name)).flat_map{|skill| skill.source_file ? [skill.source_file, skill.path].compact : []}
+				skill_paths = Array(@skills.list_skills(gem_name)).flat_map{|skill| [skill.source_file, skill.path].compact}
 				Dir.glob(File.join(gem[:path], "**/*")).select do |file|
 					File.file?(file) && !File.symlink?(file) && !skill_paths.any?{|path| file == path || file.start_with?("#{path}/")}
 				end
