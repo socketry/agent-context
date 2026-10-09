@@ -32,6 +32,7 @@ This workflow:
 This gem provides its own context files in the `context/` directory, including:
 
   - `getting-started.md` - Comprehensive guide for using and providing context files and skills.
+  - [`usage.md`](context/usage.md) - Agent instructions for finding dependency guidance and managing context and skills, installed as the `agent-context-usage` skill.
 
 When you install context from other gems, they will be placed in `.agents/context/` and referenced in `.agents/context/index.md`.
 
