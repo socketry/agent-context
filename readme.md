@@ -1,6 +1,6 @@
 # Agent::Context
 
-Provides tools for installing and managing context files and skills from Ruby gems for AI agents, and generating `.agents/context/index.md` while preserving repository-owned `agents.md`.
+Provides tools for installing and managing context files and skills from Ruby gems for AI agents, and generating `.agents/context/index.md`.
 
 [![Development Status](https://github.com/socketry/agent-context/workflows/Test/badge.svg)](https://github.com/socketry/agent-context/actions?workflow=Test)
 
@@ -8,7 +8,7 @@ Provides tools for installing and managing context files and skills from Ruby ge
 
 This gem allows you to install and manage context files from other gems. Gems can provide context files in a `context/` directory in their root, which can contain documentation, configuration examples, migration guides, and other contextual information for AI agents.
 
-When you install context from gems, ordinary guides are placed in `.agents/context/` and dependency skills in `.agents/skills/`. The generated `.agents/context/index.md` links to the guides; your repository-owned `agents.md` is preserved.
+When you install context from gems, ordinary guides are placed in `.agents/context/` and dependency skills in `.agents/skills/`. The generated `.agents/context/index.md` links to the guides.
 
 ## Quick Start
 
@@ -24,7 +24,7 @@ This workflow:
   - Adds the `agent-context` gem to your project.
   - Installs context files from all gems into `.agents/context/`.
   - Installs metadata-declared skills into `.agents/skills/`.
-  - Generates `.agents/context/index.md` with a comprehensive overview, preserving `agents.md`.
+  - Generates `.agents/context/index.md` with a comprehensive overview.
   - Follows the <https://agents.md> specification for agentic coding tools.
 
 ## Context
@@ -107,13 +107,13 @@ $ bake agent:context:skill:install
 $ bake agent:context:skill:install --gem provider --skill provider-workflow
 ```
 
-`agent-context` includes skill discovery and installation directly; the separate `agent-skills` gem is deprecated and is no longer needed. Remove it from your Gemfile. Replace the former `agent:skills:*` commands with `agent:context:skill:*`.
+`agent-context` includes skill discovery and installation directly. To migrate from the deprecated `agent-skills` gem, replace it with `agent-context` in your Gemfile and use `agent:context:skill:*` commands.
 
 ## Version Control
 
 Add a stable link to `.agents/context/index.md` in your repository-owned `agents.md`, together with instructions to read relevant installed guides. Run installation after changing dependencies. When migrating from an older generated `agents.md`, replace its generated dependency listing with this link while retaining project instructions.
 
-Installation maintains a marked block in the local Git exclude file, discovered through `git rev-parse --git-path info/exclude`. It excludes generated context, ownership files, and exact dependency-installed skill directories. Project-owned instructions and skills under `.agents/` remain trackable. Remove any blanket `/.agents/` rule from your project's `.gitignore` when adopting this layout. Re-run installation in each checkout.
+Installation maintains a marked block in the local Git exclude file, discovered through `git rev-parse --git-path info/exclude`. It excludes generated context, ownership files, and exact dependency-installed skill directories. Track project-owned instructions and skills under `.agents/`. Remove any blanket `/.agents/` rule from your project's `.gitignore` when adopting this layout. Re-run installation in each checkout.
 
 ## Providing Context in Your Gem
 
@@ -144,7 +144,7 @@ files:
     description: "Detailed usage instructions"
 ```
 
-If no `index.yaml` is provided, guide titles, summaries, and ordering are derived directly from Markdown, with the gem summary supplying the package description. Installation generates only `.agents/context/index.md`; it does not create per-provider `index.yaml` files.
+Installation generates `.agents/context/index.md` directly from Markdown headings, prose summaries, and document ordering, with the gem summary supplying the package description. A provider-authored `index.yaml` customizes these values.
 
 ### Providing Skills
 
@@ -162,13 +162,13 @@ license: MIT
 Follow these instructions.
 ```
 
-`context/workflow.md` from gem `provider` becomes `.agents/skills/provider-workflow/SKILL.md`. Resources in `context/workflow/` are copied alongside the instructions. Skill sources and resources are excluded from ordinary context and its index. Installed names have a 64-character limit; descriptions have a 1,024-character limit. Additional skill metadata is preserved.
+`context/workflow.md` from gem `provider` becomes `.agents/skills/provider-workflow/SKILL.md`. Resources in `context/workflow/` are copied alongside the instructions. Installed names have a 64-character limit; descriptions have a 1,024-character limit. The generated instructions include additional skill metadata.
 
-Skills are discovered only through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. To migrate a `skills/<name>/SKILL.md` bundle, move its instructions to `context/<name>.md`, add `type: skill` to the front matter, and move its resources to `context/<name>/`. Installed skill names become package-prefixed.
+Skills are discovered through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. To migrate a `skills/<name>/SKILL.md` bundle, move its instructions to `context/<name>.md`, add `type: skill` to the front matter, and move its resources to `context/<name>/`. Installed skill names become package-prefixed.
 
 ## Ownership and Updates
 
-Skills use the shared version-two JSON ownership index at `.agents/skills/.agent-context-skills.json`. Owners record ecosystem, package, and version. Ruby refreshes preserve Cargo-owned entries and project-owned directories. Skill replacements are staged; failed copying or committing preserves the previous installation. A full refresh removes stale gem-owned skills, including skills from removed or empty providers.
+Skills use the shared version-two JSON ownership index at `.agents/skills/.agent-context-skills.json`. Owners record ecosystem, package, and version. Ruby refreshes reconcile gem-owned skills. Skill updates use staged replacements with rollback on failure. A full refresh removes stale gem-owned skills, including skills from removed or empty providers.
 
 Legacy Ruby YAML ownership and version-one Cargo JSON ownership migrate to the shared format. Ruby's legacy ownership file is retired after successful installation.
 
