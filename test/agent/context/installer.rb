@@ -159,7 +159,7 @@ describe Agent::Context::Installer do
 				index = YAML.load_file(index_path)
 				notes = index["files"].find{|file| file["path"] == "notes.md"}
 				
-				expect(notes["title"]).to be == "Documentation"
+				expect(notes["title"]).to be == "notes"
 				expect(notes["description"]).to be == "First paragraph."
 			end
 		end

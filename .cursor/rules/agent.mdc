@@ -1,4 +1,4 @@
 ---
 alwaysApply: true
 ---
-Read the `agent.md` file in the project root directory for detailed context relating to this project and external dependencies.
+Follow repository-owned instructions in `agents.md` when present. Read relevant guidance from `.agents/context/index.md`. Run `bundle exec bake agent:context:install` if generated guidance is missing.

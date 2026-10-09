@@ -8,8 +8,12 @@ require "rubygems"
 require "fileutils"
 require "pathname"
 require "yaml"
+require "tmpdir"
 
 require_relative "paths"
+require_relative "document"
+require_relative "index"
+require "agent/skills/installer"
 
 module Agent
 	module Context
@@ -35,7 +39,8 @@ module Agent
 			def initialize(root: Dir.pwd, specifications: ::Gem::Specification)
 				@root = File.expand_path(root)
 				@context_path = File.join(@root, CONTEXT_PATH)
-				@specifications = specifications
+				@specifications = specifications.to_a
+				@skills = Agent::Skills::Installer.new(root: @root, specifications: @specifications)
 			end
 			
 			attr_reader :root
@@ -89,7 +94,10 @@ module Agent
 				gem = find_gem_with_context(gem_name)
 				return nil unless gem
 				
-				Dir.glob(File.join(gem[:path], "**/*")).select{|f| File.file?(f)}
+				skill_paths = Array(@skills.list_skills(gem_name)).flat_map{|skill| skill.source_file ? [skill.source_file, skill.path].compact : []}
+				Dir.glob(File.join(gem[:path], "**/*")).select do |file|
+					File.file?(file) && !File.symlink?(file) && !skill_paths.any?{|path| file == path || file.start_with?("#{path}/")}
+				end
 			end
 			
 			# Show content of a specific context file.
@@ -97,17 +105,15 @@ module Agent
 				gem = find_gem_with_context(gem_name)
 				return nil unless gem
 				
-				# Try to find the file with or without extension:
-				possible_paths = [
-					File.join(gem[:path], file_name),
-					File.join(gem[:path], "#{file_name}.md"),
-					File.join(gem[:path], "#{file_name}.md")
-				]
-				
-				file_path = possible_paths.find{|path| File.exist?(path)}
-				return nil unless file_path
-				
-				File.read(file_path)
+				requested = Pathname.new(file_name)
+				if requested.absolute? || requested.each_filename.any?{|part| part == ".."}
+					raise ArgumentError, "Context file must be a relative path inside context/"
+				end
+				candidates = [File.join(gem[:path], file_name)]
+				candidates << "#{candidates.first}.md" if File.extname(file_name).empty?
+				available = list_context_files(gem_name)
+				path = candidates.find{|candidate| available.include?(candidate)}
+				path ? File.read(path) : nil
 			end
 			
 			# Install context from a specific gem.
@@ -115,18 +121,29 @@ module Agent
 				gem = find_gem_with_context(gem_name)
 				return false unless gem
 				
+				files = list_context_files(gem_name)
 				target_path = File.join(@context_path, gem_name)
-				
-				# Remove old package directory if it exists to ensure clean install
-				FileUtils.rm_rf(target_path) if Dir.exist?(target_path)
-				
-				FileUtils.mkdir_p(target_path)
-				
-				# Copy all files from the gem's context directory:
-				FileUtils.cp_r(File.join(gem[:path], "."), target_path)
-				
-				# Generate index.yaml if it doesn't exist, passing the full gem hash
-				ensure_gem_index(gem, target_path)
+				FileUtils.mkdir_p(@context_path)
+				Dir.mktmpdir(".agent-context-staging-", @context_path) do |stage|
+					fresh = File.join(stage, "new")
+					backup = File.join(stage, "old")
+					FileUtils.mkdir_p(fresh)
+					files.each do |source|
+						relative = Pathname.new(source).relative_path_from(Pathname.new(gem[:path])).to_s
+						destination = File.join(fresh, relative)
+						FileUtils.mkdir_p(File.dirname(destination))
+						FileUtils.copy_file(source, destination, true)
+					end
+					ensure_gem_index(gem, fresh)
+					previous = File.exist?(target_path) || File.symlink?(target_path)
+					File.rename(target_path, backup) if previous
+					begin
+						File.rename(fresh, target_path)
+					rescue
+						File.rename(backup, target_path) if previous
+						raise
+					end
+				end
 				
 				true
 			end
@@ -143,6 +160,23 @@ module Agent
 				end
 				
 				installed
+			end
+			
+			# Install context and skills and refresh the generated index.
+			# @parameter gem [String | Nil] An optional provider gem.
+			# @returns [Hash(Symbol, Array(String))] The installed provider and skill names.
+			def install(gem: nil)
+				providers = gem ? [find_gem_with_context(gem)].compact : find_gems_with_context
+				# Read ordinary document metadata before modifying installed skills:
+				providers.each do |provider|
+					list_context_files(provider[:name]).each do |path|
+						Document.new(path).description if File.extname(path).downcase == ".md"
+					end
+				end
+				installed_skills = @skills.install(gem: gem)
+				installed_context = gem ? (install_gem_context(gem) ? [gem] : []) : install_all_context
+				Index.new(@context_path).update_index
+				{context: installed_context, skills: installed_skills}
 			end
 			
 			private
@@ -188,13 +222,11 @@ module Agent
 					
 					# Write the generated index
 					File.write(index_path, index.to_yaml)
-					Console.debug("Generated dynamic index for #{gem[:name]}: #{index_path}")
 				end
 				
 				# Load and return the index
-				YAML.load_file(index_path)
+				YAML.safe_load_file(index_path, aliases: false)
 			rescue => error
-				Console.debug("Error generating index for #{gem[:name]}: #{error.message}")
 				# Return a fallback index
 				{
 					"description" => gem[:summary] || "Context files for #{gem[:name]}",
@@ -204,56 +236,8 @@ module Agent
 			end
 			
 			def extract_content(file_path)
-				content = File.read(file_path)
-				lines = content.lines.map(&:strip)
-				
-				title = extract_title(lines)
-				description = extract_description(lines)
-				
-				[title, description]
-			end
-			
-			def extract_title(lines)
-				# Look for the first markdown header
-				header_line = lines.find{|line| line.start_with?("#")}
-				if header_line
-					# Remove markdown header syntax and clean up
-					header_line.sub(/^#+\s*/, "").strip
-				else
-					# If no header found, use a default
-					"Documentation"
-				end
-			end
-			
-			def extract_description(lines)
-				# Skip empty lines and headers to find the first paragraph
-				content_start = false
-				description_lines = []
-				
-				lines.each do |line|
-					# Skip headers
-					next if line.start_with?("#")
-					
-					# Skip empty lines until we find content
-					if !content_start && line.empty?
-						next
-					end
-					
-					# Mark that we've found content
-					content_start = true
-					
-					# If we hit an empty line after finding content, we've reached the end of the first paragraph
-					if line.empty?
-						break
-					end
-					
-					description_lines << line
-				end
-				
-				# Join the lines and truncate if too long
-				description = description_lines.join(" ").strip
-				
-				description
+				document = Document.new(file_path)
+				[document.title, document.description]
 			end
 		end
 	end

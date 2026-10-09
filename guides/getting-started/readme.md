@@ -1,190 +1,57 @@
 # Getting Started
 
-This guide explains how to use `agent-context`, a tool for discovering and installing contextual information from Ruby gems to help AI agents.
-
-## Overview
-
-`agent-context` is a tool that helps you discover and install contextual information from Ruby gems for AI agents. Gems can provide additional documentation, examples, and guidance in a `context/` directory.
+This guide explains how to install package guidance and skills using `agent-context`.
 
 ## Installation
 
-Add the gem to your project:
-
-```bash
-$ bundle add agent-context
+```sh
+bundle add agent-context
+bundle exec bake agent:context:install
 ```
 
-Then install agent context files:
-
-```bash
-$ bundle exec bake agent:context:install
-```
+The installer copies guides to `.agents/context/<gem>/`, installs skills under `.agents/skills/`, and writes `.agents/context/index.md`. It preserves your repository-owned `agents.md`. Add a stable link to the generated index there and instruct agents to read relevant guides.
 
 ## Commands
 
-```bash
-# See what context is available
+```sh
 bake agent:context:list
-
-# Install all available context
-bake agent:context:install
-
-# Install context from a specific gem
+bake agent:context:show --gem async --file getting-started
 bake agent:context:install --gem async
-
-# See what context files a gem provides
-bake agent:context:list --gem async
-
-# View a specific context file
-bake agent:context:show --gem async --file thread-safety
+bake agent:context:index
+bake agent:context:skill:list
+bake agent:context:skill:install --gem provider --skill provider-workflow
+bake agent:context:skill:show --gem provider --skill provider-workflow
 ```
 
-## Understanding context/ vs .agents/context/
+The main install command installs ordinary context and skills. The skill commands use installed, package-prefixed names for context-declared skills. The former `agent:skills:*` commands are removed.
 
-**Important distinction:**
-- **`context/`** (no dot) = Directory in gems that contains context files to share.
-- **`.agents/context/`** (with dot) = Directory in your project where context gets installed.
+## Provider Layout
 
-### What happens when you install context?
+Put ordinary guides in the packaged gem's top-level `context/` directory. Use a clear heading and first prose sentence. An optional YAML `description` overrides the summary. A provider-authored `index.yaml` can still control ordering, titles, and descriptions.
 
-When you run `bake agent:context:install`, the tool:
-
-1. Scans all installed gems for `context/` directories (in the gem's root).
-2. Creates a `.agents/context/` directory in your current project.
-3. Copies context files organized by gem name.
-
-For example:
-```
-your-project/
-├── .agents/context/           # ← Installed context (with dot)
-│   ├── async/          # ← From the 'async' gem's context/ directory
-│   │   ├── thread-safety.md
-│   │   └── performance.md
-│   └── rack/           # ← From the 'rack' gem's context/ directory
-│       └── middleware.md
-├── lib/
-└── Gemfile
-```
-
-Meanwhile, in the gems themselves:
-```
-async-gem/
-├── context/            # ← Source context (no dot)
-│   ├── thread-safety.md
-│   └── performance.md
-├── lib/
-└── async.gemspec
-```
-
-## Using Context (For Gem Users)
-
-### Why use this?
-
-- **Discover hidden documentation** that gems provide.
-- **Get practical examples** and guidance.
-- **Understand best practices** from gem authors.
-- **Access migration guides** and troubleshooting tips.
-
-### Key Points for Users
-
-- Run `bake agent:context:install` to copy context to `.agents/context/` (with dot).
-- The `.agents/context/` directory is where installed context lives in your project.
-- Ignore the generated `.agents/` directory in version control.
-- Don't edit files in `.agents/context/` - they get completely replaced when you reinstall.
-
-## Providing Context (For Gem Authors)
-
-### How to provide context in your gem
-
-#### 1. Create a `context/` directory
-
-In your gem's root directory, create a `context/` folder (no dot):
-
-```
-your-gem/
-├── context/            # ← Source context (no dot) - this is what you create
-│   ├── getting-started.md
-│   ├── configuration.md
-│   └── troubleshooting.md
-├── lib/
-└── your-gem.gemspec
-```
-
-**Important:** This is different from `.agents/context/` (with dot) which is where context gets installed in user projects.
-
-#### 2. Add context files
-
-Create files with helpful information for users of your gem. Common types include:
-
-- **getting-started.md** - Quick start guide for using your gem.
-- **configuration.md** - Configuration options and examples.
-- **troubleshooting.md** - Common issues and solutions.
-- **migration.md** - Migration guides between versions.
-- **performance.md** - Performance tips and best practices.
-- **security.md** - Security considerations.
-
-**Focus on the agent experience:** These files should help AI agents understand how to use your gem effectively, not document your gem's internal APIs.
-
-#### 3. Document your context
-
-Add a section to your gem's README:
+To provide a skill, put a Markdown document directly inside `context/`:
 
 ```markdown
-## Context
+---
+type: skill
+description: Follow the workflow when setting up this package.
+---
 
-This gem provides additional context files that can be installed using `bake agent:context:install`.
+# Workflow
 
-Available context files:
-- `getting-started.md` - Quick start guide.
-- `configuration.md` - Configuration options.
-- `troubleshooting.md` - Common issues and solutions.
+Follow the setup instructions.
 ```
 
-#### 4. File format and content guidelines
+`context/workflow.md` in gem `provider` installs as `provider-workflow/SKILL.md`. The matching `context/workflow/` directory supplies resources. Additional skill metadata is preserved. Installed names must use lowercase ASCII letters, digits and single hyphens, with at most 64 characters. Descriptions must contain 1–1,024 characters. Existing `skills/<name>/SKILL.md` bundles retain their declared names.
 
-Context files can be in any format, but `.md` is commonly used for documentation. The content should be:
+Include the complete source directories in your gem's packaged files. Skill documents and resource trees are installed only as skills.
 
-- **Practical** - Include real examples and working code.
-- **Focused** - One topic per file.
-- **Clear** - Easy to understand and follow.
-- **Actionable** - Provide specific guidance and next steps.
-- **Agent-focused** - Help AI agents understand how to use your gem effectively.
+## Ownership and Version Control
 
-### Key Points for Gem Authors
+Generated context and dependency-owned skills are reproducible. Edit their provider sources, then reinstall. Project-owned skills and instructions can live under `.agents/` and remain version controlled.
 
-- Create a `context/` directory (no dot) in your gem's root.
-- Put helpful guides for users of your gem there.
-- Focus on practical usage, not API documentation.
+Installation maintains local Git exclusions for generated context, ownership files, and exact dependency-installed skill directories. Remove blanket `/.agents/` ignore rules when adopting this layout.
 
-## Example Context Files
+The shared ownership index records ecosystem, package, and version. Full Ruby refreshes remove stale gem-owned skills and preserve Cargo-owned skills. A selected-skill install leaves other skills intact. Failed skill copying or replacement preserves the previous files and index. Legacy ownership files migrate on successful installation.
 
-For examples of well-structured context files, see the existing files in this directory:
-- `usage.md` - Shows how to use the tool (this file).
-- `examples.md` - Demonstrates practical usage scenarios.
-
-## Key Differences from API Documentation
-
-Context files are NOT the same as API documentation:
-
-- **Context files**: Help agents accomplish tasks ("How do I configure authentication?").
-- **API documentation**: Document methods and classes ("Method `authenticate` returns Boolean").
-
-Context files should answer questions like:
-- "How do I get started?".
-- "How do I configure this for production?".
-- "What do I do when X goes wrong?".
-- "How do I migrate from version Y to Z?".
-
-## Testing Your Context
-
-Before publishing, test your context files:
-
-1. Have an AI agent try to follow your getting-started guide.
-2. Check that all code examples actually work.
-3. Ensure the files are focused and don't try to cover too much.
-4. Verify that they complement rather than duplicate your main documentation.
-
-## Summary
-
-- **`context/`** = source (in gems).
-- **`.agents/context/`** = destination (in your project).
+When migrating an old generated `agents.md`, replace its generated dependency listing with a stable link to `.agents/context/index.md`, preserving your project instructions.
