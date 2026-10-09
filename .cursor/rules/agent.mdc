@@ -1,4 +1,0 @@
----
-alwaysApply: true
----
-Follow repository-owned instructions in `agents.md` when present. Read relevant guidance from `.agents/context/index.md`. Run `bundle exec bake agent:context:install` if generated guidance is missing.
