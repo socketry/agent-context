@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Installed skill ownership",
+  "type": "object",
+  "required": [
+    "ecosystem",
+    "package",
+    "version"
+  ],
+  "properties": {
+    "ecosystem": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "package": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "\\S"
+    }
+  }
+}

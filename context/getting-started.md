@@ -189,7 +189,7 @@ Include the complete source directories in your gem's packaged files. Skill docu
 
 ## Ownership and Updates
 
-Skills use `.agents/skills/.agent-context-skills.json` to record dependency ownership. Full Ruby refreshes reconcile gem-owned skills and remove stale entries. A selected-skill install updates the selected skill. Skill updates use staged replacements with rollback on failure.
+Each installed skill directory contains `skill.json` to record its provider ecosystem, package, and version. Full Ruby refreshes reconcile gem-owned skills and remove stale skills. A selected-skill install updates the selected skill. Skill updates use staged replacements with rollback on failure.
 
 ## Example Context Files
 

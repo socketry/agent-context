@@ -10,7 +10,7 @@ require "yaml"
 require "uri"
 require "tempfile"
 require "rubygems"
-require "agent/context/skills/registry"
+require "agent/context/skills/ownership"
 require "agent/context/skills/exclusion"
 require_relative "paths"
 require_relative "document"
@@ -40,8 +40,8 @@ module Agent
 					File.rename(file.path, File.join(@context_path, "index.md"))
 				end
 				root = File.dirname(File.dirname(@context_path))
-				registry = Skills::Registry.new(File.join(root, ".agents", "skills", Skills::Registry::FILE_NAME))
-				Skills::Exclusion.new(root, registry.owners.keys).apply
+				owners = Skills::Ownership.scan(File.join(root, ".agents", "skills"))
+				Skills::Exclusion.new(root, owners.keys).apply
 			end
 			
 			# Render links relative to the generated index, preserving custom provider metadata.

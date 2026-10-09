@@ -4,7 +4,7 @@
 # Copyright, 2026, by Samuel Williams.
 
 require_relative "skills/definition"
-require_relative "skills/registry"
+require_relative "skills/ownership"
 require_relative "skills/installer"
 
 module Agent

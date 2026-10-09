@@ -152,7 +152,7 @@ A context provider may distribute an Agent Skill as a Markdown document directly
 
 Consumers that support skills MUST install the document as `.agents/skills/<package-name>-<local-name>/SKILL.md`, with the installed name and `description` in its front matter. Files in the matching resource directory MUST be copied into that skill directory. Skill documents and their resources MUST NOT also be copied into `.agents/context/` or included in the generated context index.
 
-Dependency-installed skill directories SHOULD be excluded from version control, while project-owned skills in `.agents/skills/` SHOULD remain trackable. Git integrations SHOULD add exact dependency-installed skill paths to `.git/info/exclude` rather than ignore the entire `.agents/skills/` directory. They SHOULD mark generated entries with comments and preserve user-authored rules outside that marked section. Any generated skill ownership registry SHOULD also be excluded from version control.
+Dependency-installed skill directories SHOULD be excluded from version control, while project-owned skills in `.agents/skills/` SHOULD remain trackable. Git integrations SHOULD add exact dependency-installed skill paths to `.git/info/exclude` rather than ignore the entire `.agents/skills/` directory. They SHOULD mark generated entries with comments and preserve user-authored rules outside that marked section.
 
 ## 5. Discovery and Installation
 
@@ -203,27 +203,28 @@ Ordinary documents need no front matter. Consumers SHOULD use a document's first
 
 A provider MAY supply `context/index.yaml` with `description` and a `files` sequence containing `path`, `title`, and `description`. Supporting consumers SHOULD preserve explicit ordering and overrides, omit missing or skill-only paths, and append unlisted ordinary documents. Fallback ordering is getting-started, overview, usage, configuration, migration, troubleshooting, debugging, then alphabetical order.
 
-## 7. Shared Skill Ownership Index
+## 7. Skill Installation Ownership
 
-Consumers MUST record dependency-installed skill ownership in `.agents/skills/.agent-context-skills.json`:
+Consumers MUST write `skill.json` inside each dependency-installed skill directory, alongside `SKILL.md`:
 
 ```json
 {
-  "version": 2,
-  "skills": {
-    "provider-workflow": {
-      "ecosystem": "cargo",
-      "package": "provider",
-      "version": "1.0.0"
-    }
-  }
+  "ecosystem": "cargo",
+  "package": "provider",
+  "version": "1.0.0"
 }
 ```
 
-Ruby gems use `ecosystem: gem`; Cargo crates use `ecosystem: cargo`. Each installer MUST preserve foreign ecosystem entries. A full refresh reconciles only its ecosystem; a package refresh reconciles only that ecosystem and package; installing one named skill MUST preserve other owned skills. Providers removed from the dependency graph and providers that become empty MUST be included in full reconciliation.
+`SKILL.md` provides agent-facing metadata and instructions. `skill.json` records installation ownership. The shared JSON Schema is distributed as `context/skill.schema.json`.
 
-Existing unowned destinations and destinations owned by another ecosystem or package MUST NOT be replaced. Installers MUST validate the selected sources and collisions, stage skill files, and preserve the previous directories and ownership index when copying or committing a replacement fails. Shared index writes MUST use atomic replacement.
+The ownership record MUST be a JSON object with non-empty string fields `ecosystem`, `package`, and `version`; whitespace-only values are invalid. Consumers MUST tolerate additional fields. Ruby gems use `ecosystem: gem`; Cargo crates use `ecosystem: cargo`. `package` is the provider's package name and `version` is the installed provider version.
 
-Version-one JSON ownership has implicit Cargo ownership and MUST migrate to version two when rewritten.
+Consumers MUST discover installed ownership by scanning direct child directories of `.agents/skills/` for `skill.json`. The skills root and managed skill directories MUST be regular directories. Symbolic links and non-directory children are skipped. Ownership files MUST be regular files. Managed directory names MUST satisfy the installed skill name rules in section 4.4. Malformed or unreadable ownership MUST fail the operation before installed skills are changed. A directory without `skill.json` is project-owned.
 
-Git integrations SHOULD maintain one marked exclusion block covering generated context, ownership files, and exact dependency-owned skill directories from all ecosystems. They MUST preserve user rules and leave repository-owned instructions and skills trackable.
+A full refresh reconciles only the installer's ecosystem; a package refresh reconciles only that ecosystem and package; installing one named skill retains other owned skills. Full reconciliation includes providers removed from the dependency graph and providers that become empty. Installers MUST retain skills owned by other ecosystems.
+
+Existing project-owned destinations and destinations owned by another ecosystem or package MUST NOT be replaced. Installers MUST validate selected sources and collisions, stage instructions, resources, and ownership together, and replace each skill directory by renaming the staged directory. They MUST restore previous directories, ownership, and Git exclusions if a replacement fails.
+
+Top-level resource names `SKILL.md` and `skill.json` are reserved, case-insensitively, for generated files. Consumers MUST reject provider resources with either name, including directories. Nested resource files with these names MAY be copied as opaque assets.
+
+Git integrations SHOULD maintain one marked exclusion block covering generated context and exact dependency-owned skill directories from all ecosystems. They MUST retain user-authored rules outside that block. The ownership file is excluded with its containing skill directory.

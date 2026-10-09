@@ -5,6 +5,7 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "fileutils"
+require_relative "ownership"
 
 module Agent
 	module Context
@@ -53,6 +54,7 @@ module Agent
 					FileUtils.mkdir_p(destination)
 					copy_resources(@path, destination, true) if @path
 					File.write(File.join(destination, "SKILL.md"), @document)
+					Ownership.write(destination, @provider_name, @provider_version)
 				end
 				
 				private
@@ -65,8 +67,8 @@ module Agent
 						if metadata.symlink? || (!metadata.file? && !metadata.directory?)
 							raise Installer::InvalidSkill, "Skill resources must be regular files or directories: #{from}"
 						end
-						if top_level && name.downcase == "skill.md"
-							raise Installer::InvalidSkill, "SKILL.md is reserved for generated instructions: #{from}"
+						if top_level && ["skill.md", Ownership::FILE_NAME].include?(name.downcase)
+							raise Installer::InvalidSkill, "#{name} is reserved for generated skill files: #{from}"
 						end
 						if metadata.directory?
 							FileUtils.mkdir_p(to)

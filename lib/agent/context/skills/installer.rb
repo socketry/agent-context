@@ -10,7 +10,7 @@ require "yaml"
 require "tmpdir"
 
 require_relative "definition"
-require_relative "registry"
+require_relative "ownership"
 require_relative "exclusion"
 require_relative "../document"
 
@@ -19,7 +19,7 @@ module Agent
 		module Skills
 			# Represents discovery and installation of skills from resolved gems.
 			class Installer
-				NAME_PATTERN = Registry::NAME_PATTERN
+				NAME_PATTERN = Ownership::NAME_PATTERN
 				MAXIMUM_NAME_LENGTH = 64
 				MAXIMUM_DESCRIPTION_LENGTH = 1024
 				
@@ -177,9 +177,9 @@ module Agent
 					if File.exist?(@skills_path) || File.symlink?(@skills_path)
 						raise Conflict, "Skill installation path must be a regular directory: #{@skills_path}" unless File.lstat(@skills_path).directory?
 					end
-					registry = Registry.new(File.join(@skills_path, Registry::FILE_NAME))
+					owners = Ownership.scan(@skills_path)
 					definitions.each do |definition|
-						owner = registry.owner(definition.name)
+						owner = owners[definition.name]
 						destination = File.join(@skills_path, definition.name)
 						if owner && owner.values_at("ecosystem", "package") != ["gem", definition.provider_name]
 							raise Conflict, "Skill #{definition.name.inspect} belongs to #{owner["ecosystem"]}:#{owner["package"]}"
@@ -189,10 +189,9 @@ module Agent
 						end
 					end
 					names = definitions.map(&:name)
-					stale = reconcile ? registry.skills_for(package).keys - names : []
-					definitions.each{|definition| registry.claim(definition.name, definition.provider_name, definition.provider_version)}
-					stale.each{|name| registry.release(name)}
-					exclusion = Exclusion.new(@root, registry.owners.keys)
+					owned = owners.select{|_name, owner| owner["ecosystem"] == "gem" && (!package || owner["package"] == package)}
+					stale = reconcile ? owned.keys - names : []
+					exclusion = Exclusion.new(@root, (owners.keys - stale + names).uniq)
 					FileUtils.mkdir_p(@skills_path)
 					Dir.mktmpdir(".agent-context-staging-", @skills_path) do |stage|
 						staged = File.join(stage, "new")
@@ -210,7 +209,6 @@ module Agent
 								changes << [name, previous]
 								File.rename(File.join(staged, name), destination) if names.include?(name)
 							end
-							registry.save
 						rescue
 							changes.reverse_each do |name, previous|
 								destination = File.join(@skills_path, name)

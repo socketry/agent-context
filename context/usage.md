@@ -43,9 +43,9 @@ Skill names are prefixed by the provider gem. `skill:install` refreshes all depe
 
 The provider's tracked `context/` directory is source content. Installed dependency copies under `.agents/context/` and `.agents/skills/` are generated; edit provider sources and reinstall to update them. Keep repository-only instructions and project-owned skills in the consuming repository.
 
-Installation maintains local Git exclusions for generated context, the skill ownership index, and exact dependency-installed skill directories. Track project-owned skills under `.agents/skills/` and remove blanket `/.agents/` ignore rules when adopting this layout.
+Installation maintains local Git exclusions for generated context and exact dependency-installed skill directories. Track project-owned skills under `.agents/skills/` and remove blanket `/.agents/` ignore rules when adopting this layout.
 
-The `.agents/skills/.agent-context-skills.json` file records installed ownership. Skill discovery comes from source document metadata. Full Ruby skill refreshes reconcile gem-owned skills and remove stale entries. Skill updates use staged replacements with rollback on failure.
+Each installed skill directory contains `skill.json` recording its provider ecosystem, package, and version. Skill discovery comes from source document metadata. Full Ruby skill refreshes reconcile gem-owned skills and remove stale skills. Skill updates use staged replacements with rollback on failure.
 
 ## Publish Context and Skills
 
@@ -64,6 +64,6 @@ description: Set up a project using this gem's conventions.
 Follow the setup instructions.
 ```
 
-The filename supplies the local name: gem `provider` installs this document as `.agents/skills/provider-workflow/SKILL.md`. Put companion resources in `context/workflow/`; they are copied alongside the generated instructions. The installer supplies the required skill `name`, removes the source `type`, and includes additional metadata. The top-level `SKILL.md` is reserved for the generated instructions.
+The filename supplies the local name: gem `provider` installs this document as `.agents/skills/provider-workflow/SKILL.md`. Put companion resources in `context/workflow/`; they are copied alongside the generated instructions. The installer supplies the required skill `name`, removes the source `type`, and includes additional metadata. Top-level `SKILL.md` and `skill.json` are reserved for generated instructions and ownership.
 
 Include `context/**/*` in the gemspec's packaged files. Installed skill names must use lowercase ASCII letters, digits, and single hyphens, with at most 64 characters including the package prefix. Descriptions must contain 1–1,024 characters and explain the task that should activate the skill.
