@@ -83,21 +83,6 @@ module Agent
 					list_skills(gem_name)&.find{|skill| skill.name == skill_name}&.content
 				end
 				
-				# Install or reconcile one provider's skills, including an empty provider.
-				# @parameter gem_name [String] The provider gem.
-				# @returns [Array(String) | Nil] Installed names, or nil for a missing gem.
-				def install_gem_skills(gem_name)
-					return unless find_specification(gem_name)
-					install(gem: gem_name)
-				end
-				
-				# Install and reconcile skills owned by resolved gems.
-				# @parameter skip_local [bool] Whether to exclude the consuming gem.
-				# @returns [Array(String)] The installed skill names.
-				def install_all_skills(skip_local: true)
-					install(skip_local: skip_local)
-				end
-				
 				# Install selected skills and reconcile only the corresponding ownership scope.
 				# @parameter gem [String | Nil] An optional provider gem.
 				# @parameter skill [String | Nil] An optional installed skill name.

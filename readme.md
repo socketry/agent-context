@@ -1,42 +1,151 @@
 # Agent::Context
 
-Discover and install practical guidance and skills shipped by Ruby gems.
+Provides tools for installing and managing context files and skills from Ruby gems for AI agents, and generating `.agents/context/index.md` while preserving repository-owned `agents.md`.
 
-## Installation
+[![Development Status](https://github.com/socketry/agent-context/workflows/Test/badge.svg)](https://github.com/socketry/agent-context/actions?workflow=Test)
 
-```sh
-bundle add agent-context
-bundle exec bake agent:context:install
+## Overview
+
+This gem allows you to install and manage context files from other gems. Gems can provide context files in a `context/` directory in their root, which can contain documentation, configuration examples, migration guides, and other contextual information for AI agents.
+
+When you install context from gems, ordinary guides are placed in `.agents/context/` and dependency skills in `.agents/skills/`. The generated `.agents/context/index.md` links to the guides; your repository-owned `agents.md` is preserved.
+
+## Quick Start
+
+Add the gem to your project and install context from all available gems:
+
+``` bash
+$ bundle add agent-context
+$ bake agent:context:install
 ```
 
-Installation copies ordinary context into `.agents/context/<gem>/`, installs dependency skills into `.agents/skills/`, and generates `.agents/context/index.md`. Repository-owned `agents.md` is preserved.
+This workflow:
 
-## Commands
+  - Adds the `agent-context` gem to your project.
+  - Installs context files from all gems into `.agents/context/`.
+  - Installs metadata-declared skills into `.agents/skills/`.
+  - Generates `.agents/context/index.md` with a comprehensive overview, preserving `agents.md`.
+  - Follows the <https://agents.md> specification for agentic coding tools.
 
-```sh
-bake agent:context:list
-bake agent:context:list --gem async
-bake agent:context:show --gem async --file getting-started
-bake agent:context:install
-bake agent:context:install --gem async
-bake agent:context:index
-bake agent:context:skill:list
-bake agent:context:skill:show --gem provider --skill provider-workflow
-bake agent:context:skill:install
-bake agent:context:skill:install --gem provider --skill provider-workflow
+## Context
+
+This gem provides its own context files in the `context/` directory, including:
+
+  - `getting-started.md` - Comprehensive guide for using and providing context files and skills.
+
+When you install context from other gems, they will be placed in `.agents/context/` and referenced in `.agents/context/index.md`.
+
+## Usage
+
+Please see the [project documentation](https://ioquatix.github.io/agent-context/) for more details.
+
+  - [Getting Started](https://ioquatix.github.io/agent-context/guides/getting-started/index) - This guide explains how to use `agent-context`, a tool for discovering and installing contextual information from Ruby gems to help AI agents.
+
+### Installation
+
+Add the `agent-context` gem to your project:
+
+``` bash
+$ bundle add agent-context
+```
+
+### Commands
+
+#### Install Context (Primary Command)
+
+Install ordinary context and skills from all available gems and update `.agents/context/index.md`:
+
+``` bash
+$ bake agent:context:install
+```
+
+Install context from a specific gem:
+
+``` bash
+$ bake agent:context:install --gem async
+```
+
+#### List available context
+
+List all gems that have context available:
+
+``` bash
+$ bake agent:context:list
+```
+
+List context files for a specific gem:
+
+``` bash
+$ bake agent:context:list --gem async
+```
+
+#### Show context content
+
+Show the content of a specific context file:
+
+``` bash
+$ bake agent:context:show --gem async --file thread-safety
+```
+
+#### Refresh the Context Index
+
+Refresh the index from installed context:
+
+``` bash
+$ bake agent:context:index
+```
+
+#### Skills
+
+List, show, or install metadata-declared dependency skills:
+
+``` bash
+$ bake agent:context:skill:list
+$ bake agent:context:skill:show --gem provider --skill provider-workflow
+$ bake agent:context:skill:install
+$ bake agent:context:skill:install --gem provider --skill provider-workflow
 ```
 
 `agent-context` includes skill discovery and installation directly; the separate `agent-skills` gem is deprecated and is no longer needed. Remove it from your Gemfile. Replace the former `agent:skills:*` commands with `agent:context:skill:*`.
 
-## Agent Instructions and Version Control
+## Version Control
 
 Add a stable link to `.agents/context/index.md` in your repository-owned `agents.md`, together with instructions to read relevant installed guides. Run installation after changing dependencies. When migrating from an older generated `agents.md`, replace its generated dependency listing with this link while retaining project instructions.
 
 Installation maintains a marked block in the local Git exclude file, discovered through `git rev-parse --git-path info/exclude`. It excludes generated context, ownership files, and exact dependency-installed skill directories. Project-owned instructions and skills under `.agents/` remain trackable. Remove any blanket `/.agents/` rule from your project's `.gitignore` when adopting this layout. Re-run installation in each checkout.
 
-## Providing Context and Skills
+## Providing Context in Your Gem
 
-Include a top-level `context/` directory in your packaged gem. Write focused guides with a clear heading and first sentence. Optional YAML `description` overrides the prose summary; other document metadata is tolerated.
+To provide context files in your gem, create a `context/` directory in your gem's root:
+
+    your-gem/
+    ├── context/
+    │   ├── getting-started.md
+    │   ├── usage.md
+    │   ├── configuration.md
+    │   └── index.yaml (optional)
+    ├── lib/
+    └── your-gem.gemspec
+
+### Optional: Custom Index File
+
+You can provide a custom `index.yaml` file to control ordering and metadata:
+
+``` yaml
+description: "Your gem description from gemspec"
+version: "1.0.0"
+files:
+  - path: getting-started.md
+    title: "Getting Started"
+    description: "Quick start guide"
+  - path: usage.md
+    title: "Usage Guide"
+    description: "Detailed usage instructions"
+```
+
+If no `index.yaml` is provided, guide titles, summaries, and ordering are derived directly from Markdown, with the gem summary supplying the package description. Installation generates only `.agents/context/index.md`; it does not create per-provider `index.yaml` files.
+
+### Providing Skills
 
 A root-level context document can declare a skill:
 
@@ -56,8 +165,6 @@ Follow these instructions.
 
 Skills are discovered only through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. To migrate a `skills/<name>/SKILL.md` bundle, move its instructions to `context/<name>.md`, add `type: skill` to the front matter, and move its resources to `context/<name>/`. Installed skill names become package-prefixed.
 
-Providers can retain `context/index.yaml` to control guide ordering and metadata. Explicit entries take precedence, missing and skill-only entries are skipped, and unlisted guides are appended.
-
 ## Ownership and Updates
 
 Skills use the shared version-two JSON ownership index at `.agents/skills/.agent-context-skills.json`. Owners record ecosystem, package, and version. Ruby refreshes preserve Cargo-owned entries and project-owned directories. Skill replacements are staged; failed copying or committing preserves the previous installation. A full refresh removes stale gem-owned skills, including skills from removed or empty providers.
@@ -66,14 +173,54 @@ Legacy Ruby YAML ownership and version-one Cargo JSON ownership migrate to the s
 
 See [the portable specification](specification.md) and [Getting Started](guides/getting-started/readme.md).
 
-## Development
+## Releases
 
-```sh
-bundle exec sus
-bundle exec rubocop
+Please see the [project releases](https://ioquatix.github.io/agent-context/releases/index) for all releases.
+
+### v0.3.0
+
+  - Rename `agent.md` -\> `agents.md`.
+
+### v0.2.0
+
+  - Don't limit description length.
+
+## See Also
+
+  - [Bake](https://github.com/ioquatix/bake) — The bake task execution tool.
+
+### Gems With Context Files
+
+  - [Async](https://github.com/socketry/async)
+  - [Decode](https://github.com/ioquatix/decode)
+  - [Falcon](https:///github.com/socketry/falcon)
+  - [Sus](https://github.com/socketry/sus)
+
+## Contributing
+
+We welcome contributions to this project.
+
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b my-new-feature`).
+3.  Commit your changes (`git commit -am 'Add some feature.'`).
+4.  Push to the branch (`git push origin my-new-feature`).
+5.  Create a new pull request.
+
+### Running Tests
+
+To run the test suite:
+
+``` bash
+$ bundle exec sus
 ```
 
-See [releases.md](releases.md) and [license.md](license.md).
+### Making Releases
+
+To make a new release:
+
+``` bash
+$ bundle exec bake gem:release:patch # or minor or major
+```
 
 ### Developer Certificate of Origin
 

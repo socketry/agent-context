@@ -7,7 +7,6 @@
 require "rubygems"
 require "fileutils"
 require "pathname"
-require "yaml"
 require "tmpdir"
 
 require_relative "paths"
@@ -22,16 +21,6 @@ module Agent
 		# This class provides methods to find, list, show, and install context files
 		# from gems that provide them in a `context/` directory.
 		class Installer
-			CANONICAL_ORDER = [
-				"getting-started",
-				"overview",
-				"usage",
-				"configuration",
-				"migration",
-				"troubleshooting",
-				"debugging"
-			]
-			
 			# Initialize a new Installer instance.
 			#
 			# @parameter root [String] The root directory to work from (default: current directory).
@@ -134,7 +123,6 @@ module Agent
 						FileUtils.mkdir_p(File.dirname(destination))
 						FileUtils.copy_file(source, destination, true)
 					end
-					ensure_gem_index(gem, fresh)
 					previous = File.exist?(target_path) || File.symlink?(target_path)
 					File.rename(target_path, backup) if previous
 					begin
@@ -175,70 +163,10 @@ module Agent
 				end
 				installed_skills = @skills.install(gem: gem)
 				installed_context = gem ? (install_gem_context(gem) ? [gem] : []) : install_all_context
-				Index.new(@context_path).update_index
+				Index.new(@context_path, specifications: @specifications).update_index
 				{context: installed_context, skills: installed_skills}
 			end
 			
-			private
-			
-			# Generate a dynamic index from gemspec when no index.yaml is present
-			def generate_dynamic_index(gem, gem_directory)
-				# Collect all markdown files
-				markdown_files = Dir.glob(File.join(gem_directory, "**", "*.md")).sort
-				
-				# Sort files: canonical first, then alpha
-				files_sorted = markdown_files.sort_by do |file_path|
-					base_filename = File.basename(file_path, ".md").downcase
-					canonical_index = CANONICAL_ORDER.index(base_filename)
-					[canonical_index ? CANONICAL_ORDER.index(base_filename) : CANONICAL_ORDER.length, base_filename]
-				end
-				
-				files = []
-				files_sorted.each do |file_path|
-					next if File.basename(file_path) == "index.yaml" # Skip the index file itself
-					title, description = extract_content(file_path)
-					relative_path = file_path.sub("#{gem_directory}/", "")
-					files << {
-						"path" => relative_path,
-						"title" => title,
-						"description" => description
-					}
-				end
-				
-				{
-					"description" => gem[:summary] || "Context files for #{gem[:name]}",
-					"metadata" => gem[:metadata],
-					"files" => files
-				}
-			end
-			
-			# Check if a gem has an index.yaml file, generate one if not
-			def ensure_gem_index(gem, gem_directory)
-				index_path = File.join(gem_directory, "index.yaml")
-				
-				unless File.exist?(index_path)
-					# Generate dynamic index from gemspec
-					index = generate_dynamic_index(gem, gem_directory)
-					
-					# Write the generated index
-					File.write(index_path, index.to_yaml)
-				end
-				
-				# Load and return the index
-				YAML.safe_load_file(index_path, aliases: false)
-			rescue => error
-				# Return a fallback index
-				{
-					"description" => gem[:summary] || "Context files for #{gem[:name]}",
-					"metadata" => gem[:metadata],
-					"files" => []
-				}
-			end
-			
-			def extract_content(file_path)
-				document = Document.new(file_path)
-				[document.title, document.description]
-			end
 		end
 	end
 end

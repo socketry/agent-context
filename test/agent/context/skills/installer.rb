@@ -64,7 +64,9 @@ describe Agent::Context::Skills::Installer do
 	
 	it "returns nil for a gem without skills" do
 		expect(installer.find_gem_with_skills("missing-gem")).to be_nil
-		expect(installer.install_gem_skills("missing-gem")).to be_nil
+		expect do
+			installer.install(gem: "missing-gem")
+		end.to raise_exception(Agent::Context::Skills::Installer::Error)
 	end
 	
 	it "ignores legacy skill bundles and discovers only context metadata" do
@@ -87,7 +89,7 @@ describe Agent::Context::Skills::Installer do
 	
 	with "installation" do
 		it "installs skills relative to the consuming project root" do
-			installed = installer.install_gem_skills("fake-gem")
+			installed = installer.install(gem: "fake-gem")
 			destination = File.join(consumer_root, ".agents", "skills", "fake-gem-ruby-testing")
 			
 			expect(installed).to be == ["fake-gem-ruby-testing"]
@@ -95,7 +97,7 @@ describe Agent::Context::Skills::Installer do
 		end
 		
 		it "records ownership in the registry" do
-			installer.install_gem_skills("fake-gem")
+			installer.install(gem: "fake-gem")
 			registry_path = File.join(consumer_root, ".agents", "skills", Agent::Context::Skills::Registry::FILE_NAME)
 			registry = Agent::Context::Skills::Registry.new(registry_path)
 			
@@ -107,9 +109,9 @@ describe Agent::Context::Skills::Installer do
 		end
 		
 		it "updates a skill owned by the same gem" do
-			installer.install_gem_skills("fake-gem")
+			installer.install(gem: "fake-gem")
 			write_skill(provider_root, "ruby-testing", description: "Updated description.", body: "# Updated\n")
-			installer.install_gem_skills("fake-gem")
+			installer.install(gem: "fake-gem")
 			
 			content = File.read(File.join(consumer_root, ".agents", "skills", "fake-gem-ruby-testing", "SKILL.md"))
 			expect(content).to be(:include?, "# Updated")
@@ -117,9 +119,9 @@ describe Agent::Context::Skills::Installer do
 		
 		it "removes skills no longer provided by the same gem" do
 			write_skill(provider_root, "documentation", description: "Write documentation.")
-			installer.install_gem_skills("fake-gem")
+			installer.install(gem: "fake-gem")
 			File.delete(File.join(provider_root, "context", "documentation.md"))
-			installer.install_gem_skills("fake-gem")
+			installer.install(gem: "fake-gem")
 			
 			expect(File).not.to be(:exist?, File.join(consumer_root, ".agents", "skills", "fake-gem-documentation"))
 		end
@@ -130,7 +132,7 @@ describe Agent::Context::Skills::Installer do
 			File.write(File.join(destination, "SKILL.md"), "project-owned")
 			
 			expect do
-				installer.install_gem_skills("fake-gem")
+				installer.install(gem: "fake-gem")
 			end.to raise_exception(Agent::Context::Skills::Installer::Conflict)
 			
 			expect(File.read(File.join(destination, "SKILL.md"))).to be == "project-owned"
@@ -143,7 +145,7 @@ describe Agent::Context::Skills::Installer do
 			duplicate_installer = subject.new(root: consumer_root, specifications: duplicate_specifications)
 			
 			expect do
-				duplicate_installer.install_all_skills
+				duplicate_installer.install
 			end.to raise_exception(Agent::Context::Skills::Installer::Conflict)
 			
 			expect(File).not.to be(:exist?, File.join(consumer_root, ".agents", "skills", "fake-gem-ruby-testing"))
@@ -157,7 +159,7 @@ describe Agent::Context::Skills::Installer do
 			all_specifications = specifications + [build_specification("other-gem", "2.0.0", second_root)]
 			all_installer = subject.new(root: consumer_root, specifications: all_specifications)
 			
-			expect(all_installer.install_all_skills.sort).to be == ["fake-gem-ruby-testing", "other-gem-documentation"]
+			expect(all_installer.install.sort).to be == ["fake-gem-ruby-testing", "other-gem-documentation"]
 			expect(File).to be(:exist?, File.join(consumer_root, ".agents", "skills", "other-gem-documentation", "SKILL.md"))
 		ensure
 			FileUtils.rm_rf(second_root) if second_root
@@ -182,7 +184,7 @@ describe Agent::Context::Skills::Installer do
 		FileUtils.mkdir_p(File.join(context, "workflow/references"))
 		File.write(File.join(context, "workflow.md"), "---\ntype: skill\ndescription: Run workflow.\nlicense: MIT\nmetadata:\n  author: Provider\n---\n\n# Workflow\n")
 		File.write(File.join(context, "workflow/references/data.md"), "---\nnot valid: [yaml\n---\n")
-		expect(installer.install_gem_skills("fake-gem").sort).to be == ["fake-gem-ruby-testing", "fake-gem-workflow"]
+		expect(installer.install(gem: "fake-gem").sort).to be == ["fake-gem-ruby-testing", "fake-gem-workflow"]
 		content = File.read(File.join(consumer_root, ".agents/skills/fake-gem-workflow/SKILL.md"))
 		expect(content).to be(:include?, "name: fake-gem-workflow")
 		expect(content).to be(:include?, "license: MIT")
@@ -191,13 +193,13 @@ describe Agent::Context::Skills::Installer do
 	end
 	
 	it "removes a provider's last skill and cleans disappeared gem providers" do
-		installer.install_all_skills
+		installer.install
 		FileUtils.rm_rf(File.join(provider_root, "context"))
-		expect(installer.install_gem_skills("fake-gem")).to be == []
+		expect(installer.install(gem: "fake-gem")).to be == []
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 		write_skill(provider_root, "ruby-testing", description: "Test projects.")
-		installer.install_all_skills
-		subject.new(root: consumer_root, specifications: []).install_all_skills
+		installer.install
+		subject.new(root: consumer_root, specifications: []).install
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 	end
 	
@@ -209,7 +211,7 @@ describe Agent::Context::Skills::Installer do
 		cargo = File.join(consumer_root, ".agents/skills/cargo-workflow/SKILL.md")
 		FileUtils.mkdir_p(File.dirname(cargo))
 		File.write(cargo, "Cargo instructions")
-		installer.install_all_skills
+		installer.install
 		expect(File.read(cargo)).to be == "Cargo instructions"
 		expect(Agent::Context::Skills::Registry.new(registry_path).owner("cargo-workflow")["ecosystem"]).to be == "cargo"
 	end
@@ -219,12 +221,12 @@ describe Agent::Context::Skills::Installer do
 		registry.claim("fake-gem-ruby-testing", "fake-gem", "1.0.0", ecosystem: "cargo")
 		registry.save
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::Conflict)
 	end
 	
 	it "preserves the previous skills and registry when resource copying fails" do
-		installer.install_all_skills
+		installer.install
 		registry_path = File.join(consumer_root, ".agents/skills", Agent::Context::Skills::Registry::FILE_NAME)
 		previous = File.read(registry_path)
 		destination = File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing/SKILL.md")
@@ -233,7 +235,7 @@ describe Agent::Context::Skills::Installer do
 		FileUtils.mkdir_p(File.join(provider_root, "context/ruby-testing"))
 		File.symlink("missing", File.join(provider_root, "context/ruby-testing/broken"))
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		expect(File.read(registry_path)).to be == previous
 		expect(File.read(destination)).to be == instructions
@@ -241,7 +243,7 @@ describe Agent::Context::Skills::Installer do
 	
 	it "preserves unselected skills when installing one named skill" do
 		write_skill(provider_root, "documentation", description: "Write docs.")
-		installer.install_all_skills
+		installer.install
 		File.delete(File.join(provider_root, "context/documentation.md"))
 		installer.install(skill: "fake-gem-ruby-testing")
 		expect(File).to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-documentation/SKILL.md"))
@@ -260,7 +262,7 @@ describe Agent::Context::Skills::Installer do
 	it "includes the package prefix when validating installed name length" do
 		write_skill(provider_root, "a" * 56, description: "Run workflow.")
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 	end
@@ -271,21 +273,21 @@ describe Agent::Context::Skills::Installer do
 		File.write(File.join(legacy_root, "SKILL.md"), "Legacy instructions")
 		legacy = File.join(consumer_root, ".agents/skills/.agent-skills.yaml")
 		File.write(legacy, {"version" => 1, "skills" => {"ruby-testing" => {"gem" => "fake-gem", "version" => "1.0.0"}}}.to_yaml)
-		expect(installer.install_gem_skills("fake-gem")).to be == ["fake-gem-ruby-testing"]
+		expect(installer.install(gem: "fake-gem")).to be == ["fake-gem-ruby-testing"]
 		expect(File).not.to be(:exist?, legacy_root)
 		expect(File).not.to be(:exist?, legacy)
 		expect(File).to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing/SKILL.md"))
 	end
 	
 	it "migrates legacy Ruby ownership without resurrecting removed skills" do
-		installer.install_all_skills
+		installer.install
 		shared = File.join(consumer_root, ".agents/skills", Agent::Context::Skills::Registry::FILE_NAME)
 		File.delete(shared)
 		legacy = File.join(consumer_root, ".agents/skills/.agent-skills.yaml")
 		File.write(legacy, {"version" => 1, "skills" => {"fake-gem-ruby-testing" => {"gem" => "fake-gem", "version" => "1.0.0"}}}.to_yaml)
 		FileUtils.rm_rf(File.join(provider_root, "context"))
-		installer.install_all_skills
-		installer.install_all_skills
+		installer.install
+		installer.install
 		expect(File).not.to be(:exist?, legacy)
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 		expect(Agent::Context::Skills::Registry.new(shared).owners).to be == {}
@@ -296,7 +298,7 @@ describe Agent::Context::Skills::Installer do
 		FileUtils.mkdir_p(context)
 		File.write(File.join(context, "workflow.md"), "---\ntype: skill\ndescription: Run workflow.\n---\n\n# Workflow\n")
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing"))
 	end
@@ -306,7 +308,7 @@ describe Agent::Context::Skills::Installer do
 		FileUtils.mkdir_p(context)
 		metadata = {"type" => "skill", "description" => "  #{"é" * 1024}  "}
 		File.write(File.join(context, "workflow.md"), "#{metadata.to_yaml}---\n\n# Workflow\n")
-		installer.install_all_skills
+		installer.install
 		content = File.read(File.join(consumer_root, ".agents/skills/fake-gem-workflow/SKILL.md"))
 		expect(installer.list_skills("fake-gem").find{|skill| skill.name == "fake-gem-workflow"}.description).to be == "é" * 1024
 		expect(content).not.to be(:include?, "  é")
@@ -315,7 +317,7 @@ describe Agent::Context::Skills::Installer do
 	it "restores skills, legacy ownership, and exclusions when the registry commit fails" do
 		system("git", "init", "--quiet", consumer_root, exception: true)
 		write_skill(provider_root, "documentation", description: "Write docs.")
-		installer.install_all_skills
+		installer.install
 		registry = File.join(consumer_root, ".agents/skills", Agent::Context::Skills::Registry::FILE_NAME)
 		exclude = File.join(consumer_root, ".git/info/exclude")
 		previous_registry = File.read(registry)
@@ -331,7 +333,7 @@ describe Agent::Context::Skills::Installer do
 			raise Errno::EACCES, "Injected registry failure" if target == registry
 		end
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Errno::EACCES)
 		expect(File.read(registry)).to be == previous_registry
 		expect(File.read(exclude)).to be == previous_exclude
@@ -348,23 +350,23 @@ describe Agent::Context::Skills::Installer do
 		expect(installer.list_skills("fake-gem").map(&:name)).to be == ["fake-gem-ruby-testing"]
 		File.write(guide, "---\ntype: skill\ndescription: [invalid\n---\n")
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		write_skill(provider_root, "Bad_Name", description: "Invalid name.")
 		File.delete(guide)
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 	end
 	
 	it "refuses a reserved SKILL.md resource before changing installed skills" do
-		installer.install_all_skills
+		installer.install
 		context = File.join(provider_root, "context")
 		FileUtils.mkdir_p(File.join(context, "workflow"))
 		File.write(File.join(context, "workflow.md"), "---\ntype: skill\ndescription: Run workflow.\n---\n")
 		File.write(File.join(context, "workflow/SKILL.md"), "Conflicting instructions")
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
 		expect(File).not.to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-workflow"))
 		expect(File).to be(:exist?, File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing/SKILL.md"))
@@ -372,12 +374,12 @@ describe Agent::Context::Skills::Installer do
 	
 	it "works without Git and refuses malformed generated exclusion blocks" do
 		mock(Open3).before(:capture2e){raise Errno::ENOENT, "Git unavailable"}
-		expect(installer.install_all_skills).to be == ["fake-gem-ruby-testing"]
+		expect(installer.install).to be == ["fake-gem-ruby-testing"]
 		mock(Open3).clear
 		system("git", "init", "--quiet", consumer_root, exception: true)
 		File.write(File.join(consumer_root, ".git/info/exclude"), "# BEGIN bake-agent-context\n")
 		expect do
-			installer.install_all_skills
+			installer.install
 		end.to raise_exception(Agent::Context::Skills::Registry::Invalid)
 	end
 end

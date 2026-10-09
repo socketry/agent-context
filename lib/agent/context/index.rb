@@ -9,6 +9,7 @@ require "pathname"
 require "yaml"
 require "uri"
 require "tempfile"
+require "rubygems"
 require "agent/context/skills/registry"
 require "agent/context/skills/exclusion"
 require_relative "paths"
@@ -20,8 +21,10 @@ module Agent
 		class Index
 			# Initialize an index for installed context.
 			# @parameter context_path [String] The installed context directory.
-			def initialize(context_path = CONTEXT_PATH)
+			# @parameter specifications [Enumerable] The resolved gems supplying package descriptions.
+			def initialize(context_path = CONTEXT_PATH, specifications: ::Gem::Specification)
 				@context_path = File.expand_path(context_path)
+				@package_descriptions = specifications.to_a.to_h{|specification| [specification.name, specification.summary]}
 			end
 			
 			# @attribute [String] The installed context directory.
@@ -68,8 +71,8 @@ module Agent
 					end
 					next if documents.empty?
 					found = true
-					metadata = load_gem_index(name, directory)
-					sections.concat(["## #{escape(name)}", "", escape(metadata["description"] || "Context files for #{name}"), ""])
+					metadata = load_gem_index(directory)
+					sections.concat(["## #{escape(name)}", "", escape(metadata["description"] || @package_descriptions[name] || "Context files for #{name}"), ""])
 					listed = []
 					Array(metadata["files"]).each do |entry|
 						next unless entry.is_a?(Hash) && documents.key?(entry["path"]) && !listed.include?(entry["path"])
@@ -87,7 +90,7 @@ module Agent
 			
 			private
 			
-			def load_gem_index(name, directory)
+			def load_gem_index(directory)
 				path = File.join(directory, "index.yaml")
 				metadata = File.file?(path) ? YAML.safe_load_file(path, aliases: false) : {}
 				metadata.is_a?(Hash) ? metadata : {}
