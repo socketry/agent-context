@@ -3,10 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2026, by Samuel Williams.
 
-require "rdoc"
-require "rdoc/markdown"
-require "rdoc/markup/to_html"
-require "cgi"
+require "markly"
 require "yaml"
 
 module Agent
@@ -26,13 +23,13 @@ module Agent
 					raise ArgumentError, "Context frontmatter must be a mapping: #{path}" unless @metadata.is_a?(Hash)
 					content = content[match.end(0)..]
 				end
-				@parts = RDoc::Markdown.parse(content).parts
+				@parts = Markly.parse(content).to_a
 			end
 			
 			# @returns [String] The first heading or a filename-derived title.
 			def title
-				heading = @parts.find{|part| part.is_a?(RDoc::Markup::Heading) && !part.text.strip.empty?}
-				heading ? plain_text(heading.text) : File.basename(@path, File.extname(@path)).tr("-", " ")
+				heading = @parts.find{|part| part.type == :header && !plain_text(part).empty?}
+				heading ? plain_text(heading) : File.basename(@path, File.extname(@path)).tr("-", " ")
 			end
 			
 			# @returns [String | Nil] Explicit metadata or the first prose sentence.
@@ -40,9 +37,9 @@ module Agent
 				explicit = @metadata["description"]
 				raise ArgumentError, "Context description must be a string: #{@path}" if explicit && !explicit.is_a?(String)
 				return explicit.strip if explicit && !explicit.strip.empty?
-				paragraph = @parts.find{|part| part.is_a?(RDoc::Markup::Paragraph)}
+				paragraph = @parts.find{|part| part.type == :paragraph}
 				return unless paragraph
-				plain_text(paragraph.text).split(/(?<=[.!?])\s+/, 2).first
+				plain_text(paragraph).split(/(?<=[.!?])\s+/, 2).first
 			end
 			
 			# @returns [bool] Whether this document declares a skill.
@@ -60,9 +57,8 @@ module Agent
 			
 			private
 			
-			def plain_text(text)
-				html = RDoc::Markup::ToHtml.new(nil).to_html(text)
-				CGI.unescapeHTML(html.gsub(/<[^>]+>/, "")).gsub(/\s+/, " ").strip
+			def plain_text(node)
+				node.to_plaintext.gsub(/\s+/, " ").strip
 			end
 		end
 	end

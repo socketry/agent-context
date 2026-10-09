@@ -60,6 +60,23 @@ describe Agent::Context::Index do
 		expect(content).not.to be(:include?, "missing.md")
 	end
 	
+	it "extracts readable titles and summaries from inline Markdown" do
+		write("example/guide.md", "# [Guide](https://example.test) for **Ruby**\n\nUse **bold**, `code`, and <code>HTML</code> &amp; text.\nSecond sentence.\n")
+		content = index.generate_index
+		expect(content).to be(:include?, "### [Guide for Ruby](example/guide.md)")
+		expect(content).to be(:include?, "Use bold, code, and HTML & text.")
+		expect(content).not.to be(:include?, "Second sentence.")
+	end
+	
+	it "skips nested headings and paragraphs when extracting document metadata" do
+		write("example/guide.md", "> # Quoted title\n>\n> Quoted summary.\n\n- Listed summary.\n\n#\n\n# Guide\n\nActual summary.\n")
+		content = index.generate_index
+		expect(content).to be(:include?, "### [Guide](example/guide.md)")
+		expect(content).to be(:include?, "Actual summary.")
+		expect(content).not.to be(:include?, "Quoted")
+		expect(content).not.to be(:include?, "Listed")
+	end
+	
 	it "uses front matter descriptions and filename-derived fallback titles" do
 		write("example/notes-file.md", "---\ndescription: Explicit summary.\nlayout: guide\n---\n\nOrdinary prose.")
 		expect(index.generate_index).to be(:include?, "### [notes file](example/notes-file.md)")
