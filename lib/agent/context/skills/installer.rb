@@ -12,6 +12,7 @@ require "tmpdir"
 require_relative "definition"
 require_relative "registry"
 require_relative "exclusion"
+require_relative "../document"
 
 module Agent
 	module Context
@@ -140,7 +141,8 @@ module Agent
 					files.each do |file|
 						next if skills.any?{|skill| skill.path && file.start_with?("#{skill.path}/")}
 						next unless File.file?(file) && File.extname(file).downcase == ".md" && !File.symlink?(file)
-						metadata, body = parse_document(file)
+						source = parse_document(file)
+						metadata = source.metadata
 						next unless metadata["type"]
 						raise InvalidSkill, "Unsupported context type in #{file}: #{metadata["type"].inspect}" unless metadata["type"] == "skill"
 						raise InvalidSkill, "Skill documents must be directly inside context/: #{file}" unless File.dirname(file) == root
@@ -156,7 +158,7 @@ module Agent
 						else
 							assets = nil
 						end
-						document = "---\n#{YAML.dump(metadata).delete_prefix("---\n")}---\n\n#{body}"
+						document = "---\n#{YAML.dump(metadata).delete_prefix("---\n")}---\n\n#{source.body.sub(/\A\r?\n/, "")}"
 						document += "\n" unless document.end_with?("\n")
 						skills << Definition.new(name: installed_name, description: metadata["description"], path: assets, source_file: file, document: document, provider_name: specification.name, provider_version: specification.version.to_s)
 					end
@@ -164,14 +166,9 @@ module Agent
 				end
 				
 				def parse_document(file)
-					content = File.read(file)
-					match = content.match(/\A---[ \t]*\r?\n(.*?)\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|\z)/m)
-					return [{}, content] unless match
-					metadata = YAML.safe_load(match[1], aliases: false)
-					raise InvalidSkill, "Frontmatter must be a mapping: #{file}" unless metadata.is_a?(Hash)
-					[metadata, content[match.end(0)..].sub(/\A\r?\n/, "")]
-				rescue Psych::Exception => error
-					raise InvalidSkill, "Invalid YAML frontmatter in #{file}: #{error.message}"
+					Document.new(file)
+				rescue Document::Invalid => error
+					raise InvalidSkill, error.message
 				end
 				
 				def validate_name(name, file)

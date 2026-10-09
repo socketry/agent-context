@@ -62,6 +62,23 @@ describe Agent::Context::Installer do
 		expect(File).not.to be(:exist?, File.join(consumer, ".agents/skills/provider-workflow"))
 	end
 	
+	it "installs native front matter and preserves dates and skill body formatting" do
+		guide = "--- yaml\ndate: 2026-10-09\nlayout: guide\n---\n\n# Guide\n\nUse the provider.\n"
+		File.write(File.join(provider, "context/guide.md"), guide)
+		body = "# Workflow\r\n\r\nUse  [reference][guide].\r\n\r\n~~~yaml\r\n---\r\nexample: unchanged\r\n---\r\n~~~\r\n\r\n[guide]: https://example.test\r\n"
+		File.binwrite(File.join(provider, "context/workflow.md"), "--- yaml\r\ntype: skill\r\nname: ignored\r\ndescription: Run the workflow.\r\ndate: 2026-10-09\r\nupdated: 2026-10-09T12:30:00Z\r\n---\r\n\r\n#{body}")
+		expect(installer.install).to be == {context: ["provider"], skills: ["provider-workflow"]}
+		expect(File.read(File.join(consumer, ".agents/context/provider/guide.md"))).to be == guide
+		instructions = File.binread(File.join(consumer, ".agents/skills/provider-workflow/SKILL.md"))
+		expect(instructions).to be(:end_with?, body)
+		metadata = Agent::Context::Document.new(File.join(consumer, ".agents/skills/provider-workflow/SKILL.md")).metadata
+		expect(metadata["name"]).to be == "provider-workflow"
+		expect(metadata).not.to be(:key?, "type")
+		expect(metadata["date"]).to be == Date.new(2026, 10, 9)
+		expect(metadata["updated"]).to be == Time.utc(2026, 10, 9, 12, 30)
+		expect(File.read(File.join(consumer, ".agents/context/index.md"))).to be(:include?, "Use the provider.")
+	end
+	
 	it "handles a provider containing only skills" do
 		File.delete(File.join(provider, "context/guide.md"))
 		installer.install(gem: "provider")
