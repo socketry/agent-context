@@ -33,7 +33,7 @@ describe "Agent Context tasks" do
 				spec.summary = "Provider guidance."
 			end
 			specification.instance_variable_set(:@full_gem_path, provider)
-			mock(Gem::Specification).replace(:to_a){[specification]}
+			mock(Gem::Specification).replace(:each){|&block| [specification].each(&block)}
 			output = []
 			mock($stdout).replace(:puts){|*messages| output.concat(messages)}
 			context = Bake::Context.load(root)

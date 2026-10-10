@@ -10,7 +10,7 @@ require "fileutils"
 describe Agent::Context::Document do
 	let(:directory) {Dir.mktmpdir}
 	let(:path) {File.join(directory, "guide.md")}
-	let(:document) {subject.new(path)}
+	let(:document) {subject.load(path)}
 	
 	def around
 		yield
@@ -35,12 +35,12 @@ describe Agent::Context::Document do
 		expect(File.binread(path)).to be == content
 	end
 	
-	it "keeps later thematic breaks and code examples in the body" do
+	it "parses in-memory Markdown with thematic breaks and code examples" do
 		content = "# Guide\n\n---\n\n~~~yaml\n---\ntype: skill\n---\n~~~\n"
-		File.write(path, content)
-		expect(document.metadata).to be == {}
-		expect(document.body).to be == content
-		expect(document).not.to be(:skill?)
+		parsed = subject.parse(content, path: path)
+		expect(parsed.metadata).to be == {}
+		expect(parsed.body).to be == content
+		expect(parsed).not.to be(:skill?)
 	end
 	
 	it "accepts empty front matter" do

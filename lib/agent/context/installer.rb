@@ -28,7 +28,7 @@ module Agent
 			def initialize(root: Dir.pwd, specifications: ::Gem::Specification)
 				@root = File.expand_path(root)
 				@context_path = File.join(@root, CONTEXT_PATH)
-				@specifications = specifications.to_a
+				@specifications = specifications
 				@skills = Agent::Context::Skills::Installer.new(root: @root, specifications: @specifications)
 			end
 			
@@ -158,7 +158,7 @@ module Agent
 				# Read ordinary document metadata before modifying installed skills:
 				providers.each do |provider|
 					list_context_files(provider[:name]).each do |path|
-						Document.new(path).description if File.extname(path).downcase == ".md"
+						Document.load(path).description if File.extname(path).downcase == ".md"
 					end
 				end
 				installed_skills = @skills.install(gem: gem)

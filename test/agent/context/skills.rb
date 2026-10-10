@@ -31,6 +31,22 @@ describe Agent::Context::Installer do
 		FileUtils.rm_rf(directory)
 	end
 	
+	it "enumerates gem specifications during discovery and index generation" do
+		enumerations = 0
+		specifications = Enumerator.new do |yielder|
+			enumerations += 1
+			yielder << specification
+		end
+		installer = subject.new(root: consumer, specifications: specifications)
+		skills = Agent::Context::Skills::Installer.new(root: consumer, specifications: specifications)
+		index = Agent::Context::Index.new(installer.context_path, specifications: specifications)
+		expect(enumerations).to be == 0
+		expect(installer.find_gems_with_context.map{|gem| gem[:name]}).to be == ["provider"]
+		expect(skills.find_gems_with_skills.map{|gem| gem[:name]}).to be == ["provider"]
+		installer.install
+		expect(index.generate_index).to be(:include?, "Provider guidance.")
+	end
+	
 	it "installs context and skills without duplicating skill documents or assets" do
 		agents = File.join(consumer, "agents.md")
 		File.write(agents, "Repository-owned instructions")
@@ -71,7 +87,7 @@ describe Agent::Context::Installer do
 		expect(File.read(File.join(consumer, ".agents/context/provider/guide.md"))).to be == guide
 		instructions = File.binread(File.join(consumer, ".agents/skills/provider-workflow/SKILL.md"))
 		expect(instructions).to be(:end_with?, body)
-		metadata = Agent::Context::Document.new(File.join(consumer, ".agents/skills/provider-workflow/SKILL.md")).metadata
+		metadata = Agent::Context::Document.load(File.join(consumer, ".agents/skills/provider-workflow/SKILL.md")).metadata
 		expect(metadata["name"]).to be == "provider-workflow"
 		expect(metadata).not.to be(:key?, "type")
 		expect(metadata["date"]).to be == Date.new(2026, 10, 9)

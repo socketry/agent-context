@@ -17,17 +17,39 @@ module Agent
 			class Invalid < ArgumentError
 			end
 			
-			# Initialize a document from its source path.
+			# Read and parse a document from its source path.
 			# @parameter path [String] The Markdown source file.
-			def initialize(path)
-				@path = path
-				@content = File.read(path)
-				@parts = Markly.parse(@content, flags: Markly::FRONT_MATTER).to_a
-				@front_matter = @parts.first if @parts.first&.type == :front_matter
-				@metadata = @front_matter ? YAML.safe_load(@front_matter.string_content, permitted_classes: [Date, Time], aliases: false, fallback: {}) : {}
-				raise Invalid, "Context frontmatter must be a mapping: #{path}" unless @metadata.is_a?(Hash)
+			# @returns [Document] The parsed document.
+			def self.load(path)
+				parse(File.read(path), path: path)
+			end
+			
+			# Parse Markdown and validate its front matter.
+			# @parameter content [String] The Markdown source content.
+			# @parameter path [String] The source path used for titles and error messages.
+			# @returns [Document] The parsed document.
+			def self.parse(content, path:)
+				parts = Markly.parse(content, flags: Markly::FRONT_MATTER).to_a
+				front_matter = parts.first if parts.first&.type == :front_matter
+				metadata = front_matter ? YAML.safe_load(front_matter.string_content, permitted_classes: [Date, Time], aliases: false, fallback: {}) : {}
+				raise Invalid, "Context frontmatter must be a mapping: #{path}" unless metadata.is_a?(Hash)
+				new(path, content, parts, front_matter, metadata)
 			rescue Psych::Exception => error
 				raise Invalid, "Invalid YAML frontmatter in #{path}: #{error.message}"
+			end
+			
+			# Initialize a document from parsed Markdown and metadata.
+			# @parameter path [String] The Markdown source path.
+			# @parameter content [String] The original Markdown source content.
+			# @parameter parts [Array(Markly::Node)] The top-level Markdown nodes.
+			# @parameter front_matter [Markly::Node | Nil] The leading front matter node.
+			# @parameter metadata [Hash] The decoded front matter.
+			def initialize(path, content, parts, front_matter, metadata)
+				@path = path
+				@content = content
+				@parts = parts
+				@front_matter = front_matter
+				@metadata = metadata
 			end
 			
 			# @attribute [Hash] Decoded context metadata.

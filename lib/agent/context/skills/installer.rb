@@ -39,7 +39,7 @@ module Agent
 				def initialize(root: Dir.pwd, specifications: ::Gem::Specification)
 					@root = File.expand_path(root)
 					@skills_path = File.join(@root, ".agents", "skills")
-					@specifications = specifications.to_a
+					@specifications = specifications
 				end
 				
 				# @attribute [String] The consuming project root.
@@ -151,7 +151,7 @@ module Agent
 				end
 				
 				def parse_document(file)
-					Document.new(file)
+					Document.load(file)
 				rescue Document::Invalid => error
 					raise InvalidSkill, error.message
 				end
