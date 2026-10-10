@@ -215,7 +215,7 @@ Consumers MUST write `skill.json` inside each dependency-installed skill directo
 }
 ```
 
-`SKILL.md` provides agent-facing metadata and instructions. `skill.json` records installation ownership. The shared JSON Schema is distributed as `context/skill.schema.json`.
+`SKILL.md` provides agent-facing metadata and instructions. `skill.json` records installation ownership.
 
 The ownership record MUST be a JSON object with non-empty string fields `ecosystem`, `package`, and `version`; whitespace-only values are invalid. Consumers MUST tolerate additional fields. Ruby gems use `ecosystem: gem`; Cargo crates use `ecosystem: cargo`. `package` is the provider's package name and `version` is the installed provider version.
 
