@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
 	spec.name = "agent-context"
 	spec.version = Agent::Context::VERSION
 	
-	spec.summary = "Install and manage context files from Ruby gems."
+	spec.summary = "Install and manage context files and skills from Ruby gems."
 	spec.authors = ["Samuel Williams", "Shopify Inc."]
 	spec.license = "MIT"
 	
@@ -28,4 +28,5 @@ Gem::Specification.new do |spec|
 	spec.required_ruby_version = ">= 3.3"
 	
 	spec.add_dependency "bake", ">= 0.23"
+	spec.add_dependency "markly", "~> 0.16"
 end

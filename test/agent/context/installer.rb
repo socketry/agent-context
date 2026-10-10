@@ -89,18 +89,6 @@ describe Agent::Context::Installer do
 			expect(content).to be_nil
 		end
 		
-		it "handles a malformed context index" do
-			File.write(File.join(context_path, "index.yaml"), "invalid: yaml: content: [")
-			
-			helper = subject.new(specifications: @specifications)
-			gem = helper.find_gem_with_context("fake-gem")
-			index = helper.send(:ensure_gem_index, gem, context_path)
-			
-			expect(index["description"]).to be == "A fake gem for testing"
-			expect(index["metadata"]).to be == {}
-			expect(index["files"]).to be == []
-		end
-		
 		with "installation" do
 			let(:target_path) {Dir.mktmpdir}
 			
@@ -137,6 +125,18 @@ describe Agent::Context::Installer do
 				expect(result).to be_falsey
 			end
 			
+			it "installs dotfiles and files inside hidden context directories" do
+				File.write(File.join(context_path, ".env.example"), "SETTING=value\n")
+				FileUtils.mkdir_p(File.join(context_path, ".config"))
+				File.write(File.join(context_path, ".config/settings.yaml"), "setting: value\n")
+				helper = subject.new(root: @target_path, specifications: @specifications)
+				helper.install
+				
+				target = File.join(helper.context_path, "fake-gem")
+				expect(File.read(File.join(target, ".env.example"))).to be == "SETTING=value\n"
+				expect(File.read(File.join(target, ".config/settings.yaml"))).to be == "setting: value\n"
+			end
+			
 			it "can install context from all gems" do
 				helper = subject.new(root: @target_path, specifications: @specifications)
 				
@@ -149,18 +149,34 @@ describe Agent::Context::Installer do
 				expect(File).to be(:exist?, File.join(target_context_path, "configuration.md"))
 			end
 			
-			it "generates metadata for minimally structured context" do
+			it "generates the Markdown index directly without per-provider YAML" do
 				File.write(File.join(context_path, "notes.md"), "First paragraph.\n\nSecond paragraph.")
 				helper = subject.new(root: @target_path, specifications: @specifications)
+				target_context_path = File.join(helper.context_path, "fake-gem")
+				FileUtils.mkdir_p(target_context_path)
+				File.write(File.join(target_context_path, "index.yaml"), "description: Old generated metadata.\n")
 				
-				expect(helper.install_gem_context("fake-gem")).to be_truthy
+				expect(helper.install[:context]).to be == ["fake-gem"]
+				expect(File).not.to be(:exist?, File.join(target_context_path, "index.yaml"))
+				expect(File).not.to be(:exist?, File.join(context_path, "index.yaml"))
 				
-				index_path = File.join(@target_path, ".agents", "context", "fake-gem", "index.yaml")
-				index = YAML.load_file(index_path)
-				notes = index["files"].find{|file| file["path"] == "notes.md"}
-				
-				expect(notes["title"]).to be == "Documentation"
-				expect(notes["description"]).to be == "First paragraph."
+				index = File.read(File.join(helper.context_path, "index.md"))
+				expect(index).to be(:include?, "A fake gem for testing")
+				expect(index).to be(:include?, "### [notes](fake-gem/notes.md)")
+				expect(index).to be(:include?, "First paragraph.")
+				expect(index.index("Getting Started")).to be < index.index("Configuration")
+			end
+			
+			it "copies provider-authored YAML unchanged and honors its overrides" do
+				authored = "# Provider-owned metadata\ndescription: Custom provider description.\nfiles:\n- path: configuration.md\n  title: Custom Configuration\n"
+				File.write(File.join(context_path, "index.yaml"), authored)
+				helper = subject.new(root: @target_path, specifications: @specifications)
+				helper.install
+				expect(File.read(File.join(helper.context_path, "fake-gem", "index.yaml"))).to be == authored
+				expect(File.read(File.join(context_path, "index.yaml"))).to be == authored
+				index = File.read(File.join(helper.context_path, "index.md"))
+				expect(index).to be(:include?, "Custom provider description.")
+				expect(index.index("Custom Configuration")).to be < index.index("Getting Started")
 			end
 		end
 	end

@@ -56,33 +56,17 @@ def show(gem:, file:)
 	end
 end
 
-# Install context files from gems into the current project.
-# @parameter gem [String] Optional specific gem name to install context from.
+# Install ordinary context and skills, then refresh the generated index.
+# @parameter gem [String | Nil] An optional provider gem.
 def install(gem: nil)
-	if gem
-		if @installer.install_gem_context(gem)
-			puts "Installed context from gem '#{gem}'"
-		else
-			puts "No context found for gem '#{gem}'"
-		end
-	else
-		installed = @installer.install_all_context
-		if installed.any?
-			puts "Installed context from #{installed.length} gems:"
-			installed.each{|gem_name| puts "\t#{gem_name}"}
-		else
-			puts "No gems with context found"
-		end
-	end
-	
-	# Update agents.md after installing context
-	index = Agent::Context::Index.new(@installer.context_path)
-	index.update_agents_md
+	installed = @installer.install(gem: gem)
+	puts "Installed context from: #{installed[:context].join(", ")}" unless installed[:context].empty?
+	puts "Installed skills: #{installed[:skills].join(", ")}" unless installed[:skills].empty?
+	puts "Updated .agents/context/index.md"
 end
 
-# Update or create AGENTS.md in the project root with context section
-# This follows the AGENTS.md specification for agentic coding tools
-def agents_md(path = "agents.md")
-	index = Agent::Context::Index.new(@installer.context_path)
-	index.update_agents_md(path)
+# Refresh the generated index of installed context.
+def index
+	Agent::Context::Index.new(@installer.context_path).update_index
+	puts "Updated .agents/context/index.md"
 end

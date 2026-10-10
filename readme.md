@@ -1,6 +1,6 @@
 # Agent::Context
 
-Provides tools for installing and managing context files from Ruby gems for AI agents, and generating `agents.md` files following the <https://agents.md> specification.
+Provides tools for installing and managing context files and skills from Ruby gems for AI agents, and generating `.agents/context/index.md`.
 
 [![Development Status](https://github.com/socketry/agent-context/workflows/Test/badge.svg)](https://github.com/socketry/agent-context/actions?workflow=Test)
 
@@ -8,7 +8,7 @@ Provides tools for installing and managing context files from Ruby gems for AI a
 
 This gem allows you to install and manage context files from other gems. Gems can provide context files in a `context/` directory in their root, which can contain documentation, configuration examples, migration guides, and other contextual information for AI agents.
 
-When you install context from gems, they are placed in the `.agents/context/` directory and an `agents.md` file is generated or updated to provide a comprehensive overview for AI agents.
+When you install context from gems, ordinary guides are placed in `.agents/context/` and dependency skills in `.agents/skills/`. The generated `.agents/context/index.md` links to the guides.
 
 ## Quick Start
 
@@ -23,16 +23,18 @@ This workflow:
 
   - Adds the `agent-context` gem to your project.
   - Installs context files from all gems into `.agents/context/`.
-  - Generates or updates `agents.md` with a comprehensive overview.
+  - Installs metadata-declared skills into `.agents/skills/`.
+  - Generates `.agents/context/index.md` with a comprehensive overview.
   - Follows the <https://agents.md> specification for agentic coding tools.
 
 ## Context
 
 This gem provides its own context files in the `context/` directory, including:
 
-  - `usage.md` - Comprehensive guide for using and providing context files.
+  - `getting-started.md` - Comprehensive guide for using and providing context files and skills.
+  - [`usage.md`](context/usage.md) - Agent instructions for finding dependency guidance and managing context and skills, installed as the `agent-context-usage` skill.
 
-When you install context from other gems, they will be placed in the `.agents/context/` directory and referenced in `agents.md`.
+When you install context from other gems, they will be placed in `.agents/context/` and referenced in `.agents/context/index.md`.
 
 ## Usage
 
@@ -52,7 +54,7 @@ $ bundle add agent-context
 
 #### Install Context (Primary Command)
 
-Install context from all available gems and update `agents.md`:
+Install ordinary context and skills from all available gems and update `.agents/context/index.md`:
 
 ``` bash
 $ bake agent:context:install
@@ -86,13 +88,32 @@ Show the content of a specific context file:
 $ bake agent:context:show --gem async --file thread-safety
 ```
 
+#### Refresh the Context Index
+
+Refresh the index from installed context:
+
+``` bash
+$ bake agent:context:index
+```
+
+#### Skills
+
+List, show, or install metadata-declared dependency skills:
+
+``` bash
+$ bake agent:context:skill:list
+$ bake agent:context:skill:show --gem provider --skill provider-workflow
+$ bake agent:context:skill:install
+$ bake agent:context:skill:install --gem provider --skill provider-workflow
+```
+
+`agent-context` includes skill discovery and installation directly. Use it for Ruby dependency skills; the standalone `agent-skills` gem is deprecated.
+
 ## Version Control
 
-The `.agents/` directory contains generated files and should be excluded from version control. The generated `agents.md` index should be committed:
+Add a stable link to `.agents/context/index.md` in your repository-owned `agents.md`, together with instructions to read relevant installed guides. Run installation after changing dependencies. When migrating from an older generated `agents.md`, replace its generated dependency listing with this link while retaining project instructions.
 
-  - `agents.md` is user-facing documentation that should be versioned.
-  - `.agents/context/` can be restored by running `bake agent:context:install`.
-  - Ignoring the entire `.agents/` directory covers other generated agent resources too.
+Installation maintains a marked block in the local Git exclude file, discovered through `git rev-parse --git-path info/exclude`. It excludes generated context, ownership files, and exact dependency-installed skill directories. Track project-owned instructions and skills under `.agents/`. Remove any blanket `/.agents/` rule from your project's `.gitignore` when adopting this layout. Re-run installation in each checkout.
 
 ## Providing Context in Your Gem
 
@@ -123,7 +144,33 @@ files:
     description: "Detailed usage instructions"
 ```
 
-If no `index.yaml` is provided, one will be generated automatically from your gemspec and markdown files.
+Installation generates `.agents/context/index.md` directly from Markdown headings, prose summaries, and document ordering, with the gem summary supplying the package description. A provider-authored `index.yaml` customizes these values.
+
+### Providing Skills
+
+A root-level context document can declare a skill:
+
+```markdown
+---
+type: skill
+description: Run the provider's workflow when preparing a new project.
+license: MIT
+---
+
+# Workflow
+
+Follow these instructions.
+```
+
+`context/workflow.md` from gem `provider` becomes `.agents/skills/provider-workflow/SKILL.md`. Resources in `context/workflow/` are copied alongside the instructions. Installed names have a 64-character limit; descriptions have a 1,024-character limit. The generated instructions include additional skill metadata.
+
+Skills are discovered through `type: skill` metadata in `context/*.md`, matching `bake-agent-context-rust`. Include `context/**/*` in your gem's file list. Installed skill names become package-prefixed.
+
+## Ownership and Updates
+
+Each installed skill directory contains `skill.json` with its provider ecosystem, package, and version. Ruby refreshes reconcile gem-owned skills. Skill updates use staged replacements with rollback on failure. A full refresh removes stale gem-owned skills, including skills from removed or empty providers.
+
+See [the portable specification](specification.md) and [Getting Started](guides/getting-started/readme.md).
 
 ## Releases
 
