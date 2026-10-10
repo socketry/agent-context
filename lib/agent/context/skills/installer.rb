@@ -26,9 +26,11 @@ module Agent
 				# Raised when a skill cannot be installed.
 				class Error < StandardError
 				end
+				
 				# Raised when skill metadata or resources are invalid.
 				class InvalidSkill < Error
 				end
+				
 				# Raised when a destination has ambiguous or foreign ownership.
 				class Conflict < Error
 				end
@@ -44,6 +46,7 @@ module Agent
 				
 				# @attribute [String] The consuming project root.
 				attr_reader :root
+				
 				# @attribute [String] The installed skill directory.
 				attr_reader :skills_path
 				
@@ -53,6 +56,7 @@ module Agent
 				def find_gems_with_skills(skip_local: true)
 					@specifications.filter_map do |specification|
 						next if skip_local && File.expand_path(specification.full_gem_path) == @root
+						
 						information = build_gem_information(specification)
 						information unless information[:skills].empty?
 					end
@@ -64,6 +68,7 @@ module Agent
 				def find_gem_with_skills(gem_name)
 					specification = find_specification(gem_name)
 					return unless specification
+					
 					information = build_gem_information(specification)
 					information unless information[:skills].empty?
 				end
@@ -96,11 +101,13 @@ module Agent
 					else
 						providers = find_gems_with_skills(skip_local: skip_local)
 					end
+					
 					definitions = providers.flat_map{|provider| provider[:skills]}
 					if skill
 						definitions.select!{|definition| definition.name == skill}
 						raise Error, "No dependency skill found: #{skill}" if definitions.empty?
 					end
+					
 					install_definitions(definitions, package: gem, reconcile: !skill)
 				end
 				
@@ -109,45 +116,86 @@ module Agent
 				def find_specification(name)
 					matches = @specifications.select{|specification| specification.name == name}
 					raise Conflict, "Multiple resolved versions provide gem #{name.inspect}" if matches.length > 1
+					
 					matches.first
 				end
 				
 				def build_gem_information(specification)
 					context_root = File.join(specification.full_gem_path, "context")
 					skills = discover_context_skills(context_root, specification)
-					{name: specification.name, version: specification.version.to_s, skills: skills.sort_by(&:name)}
+					
+					{
+						name: specification.name,
+						version: specification.version.to_s,
+						skills: skills.sort_by(&:name),
+					}
 				end
 				
 				def discover_context_skills(root, specification)
 					return [] unless File.directory?(root)
 					raise InvalidSkill, "Context provider must be a regular directory: #{root}" if File.symlink?(root)
+					
+					# Discover root-level skills before inspecting their resource directories:
+					files = Dir.glob(File.join(root, "**", "*")).sort_by do |file|
+						[File.dirname(file) == root ? 0 : 1, file]
+					end
+					
 					skills = []
-					files = Dir.glob(File.join(root, "**", "*")).sort_by{|file| [File.dirname(file) == root ? 0 : 1, file]}
 					files.each do |file|
 						next if skills.any?{|skill| skill.path && file.start_with?("#{skill.path}/")}
-						next unless File.file?(file) && File.extname(file).downcase == ".md" && !File.symlink?(file)
+						next unless File.file?(file) && !File.symlink?(file)
+						next unless File.extname(file).downcase == ".md"
+						
 						source = parse_document(file)
-						metadata = source.metadata
-						next unless metadata["type"]
-						raise InvalidSkill, "Unsupported context type in #{file}: #{metadata["type"].inspect}" unless metadata["type"] == "skill"
-						raise InvalidSkill, "Skill documents must be directly inside context/: #{file}" unless File.dirname(file) == root
-						local_name = File.basename(file, File.extname(file))
-						installed_name = "#{specification.name.downcase.tr("_", "-")}-#{local_name}"
-						validate_name(local_name, file)
-						metadata = metadata.merge("name" => installed_name)
-						metadata.delete("type")
-						validate_metadata(metadata, file)
-						assets = File.join(root, local_name)
-						if File.exist?(assets) || File.symlink?(assets)
-							raise InvalidSkill, "Skill resources must be a regular directory: #{assets}" unless File.lstat(assets).directory?
-						else
-							assets = nil
+						type = source.metadata["type"]
+						next unless type
+						
+						unless type == "skill"
+							raise InvalidSkill, "Unsupported context type in #{file}: #{type.inspect}"
 						end
-						document = "---\n#{YAML.dump(metadata).delete_prefix("---\n")}---\n\n#{source.body.sub(/\A\r?\n/, "")}"
-						document += "\n" unless document.end_with?("\n")
-						skills << Definition.new(name: installed_name, description: metadata["description"], path: assets, source_file: file, document: document, provider_name: specification.name, provider_version: specification.version.to_s)
+						
+						unless File.dirname(file) == root
+							raise InvalidSkill, "Skill documents must be directly inside context/: #{file}"
+						end
+						
+						skills << build_definition(file, source, specification)
 					end
+					
 					skills
+				end
+				
+				def build_definition(file, source, specification)
+					local_name = File.basename(file, File.extname(file))
+					installed_name = "#{specification.name.downcase.tr("_", "-")}-#{local_name}"
+					validate_name(local_name, file)
+					
+					metadata = source.metadata.merge("name" => installed_name)
+					metadata.delete("type")
+					validate_metadata(metadata, file)
+					
+					assets = File.join(File.dirname(file), local_name)
+					if File.exist?(assets) || File.symlink?(assets)
+						unless File.lstat(assets).directory?
+							raise InvalidSkill, "Skill resources must be a regular directory: #{assets}"
+						end
+					else
+						assets = nil
+					end
+					
+					front_matter = YAML.dump(metadata).delete_prefix("---\n")
+					body = source.body.sub(/\A\r?\n/, "")
+					document = "---\n#{front_matter}---\n\n#{body}"
+					document += "\n" unless document.end_with?("\n")
+					
+					Definition.new(
+						name: installed_name,
+						description: metadata["description"],
+						path: assets,
+						source_file: file,
+						document: document,
+						provider_name: specification.name,
+						provider_version: specification.version.to_s,
+					)
 				end
 				
 				def parse_document(file)
@@ -164,62 +212,95 @@ module Agent
 				
 				def validate_metadata(metadata, file)
 					validate_name(metadata["name"], file)
+					
 					description = metadata["description"]
-					unless description.is_a?(String) && !description.strip.empty? && description.strip.length <= MAXIMUM_DESCRIPTION_LENGTH
+					unless description.is_a?(String)
 						raise InvalidSkill, "Invalid skill description in #{file}"
 					end
-					metadata["description"] = description.strip
+					
+					description = description.strip
+					if description.empty? || description.length > MAXIMUM_DESCRIPTION_LENGTH
+						raise InvalidSkill, "Invalid skill description in #{file}"
+					end
+					
+					metadata["description"] = description
 				end
 				
 				def install_definitions(definitions, package:, reconcile:)
 					duplicates = definitions.group_by(&:name).select{|_name, matches| matches.length > 1}
 					raise Conflict, "Multiple providers supply skills: #{duplicates.keys.join(", ")}" unless duplicates.empty?
+					
 					if File.exist?(@skills_path) || File.symlink?(@skills_path)
-						raise Conflict, "Skill installation path must be a regular directory: #{@skills_path}" unless File.lstat(@skills_path).directory?
+						unless File.lstat(@skills_path).directory?
+							raise Conflict, "Skill installation path must be a regular directory: #{@skills_path}"
+						end
 					end
+					
 					owners = Ownership.scan(@skills_path)
-					definitions.each do |definition|
-						owner = owners[definition.name]
-						destination = File.join(@skills_path, definition.name)
-						if owner && owner.values_at("ecosystem", "package") != ["gem", definition.provider_name]
-							raise Conflict, "Skill #{definition.name.inspect} belongs to #{owner["ecosystem"]}:#{owner["package"]}"
-						end
-						if (File.exist?(destination) || File.symlink?(destination)) && !owner
-							raise Conflict, "Skill #{definition.name.inspect} is not managed by Agent Context"
-						end
-					end
+					validate_destinations(definitions, owners)
+					
 					names = definitions.map(&:name)
-					owned = owners.select{|_name, owner| owner["ecosystem"] == "gem" && (!package || owner["package"] == package)}
+					owned = owners.select do |_name, owner|
+						owner["ecosystem"] == "gem" && (!package || owner["package"] == package)
+					end
 					stale = reconcile ? owned.keys - names : []
 					exclusion = Exclusion.prepare(@root, (owners.keys - stale + names).uniq)
+					
 					FileUtils.mkdir_p(@skills_path)
 					Dir.mktmpdir(".agent-context-staging-", @skills_path) do |stage|
 						staged = File.join(stage, "new")
 						backups = File.join(stage, "backups")
 						FileUtils.mkdir_p([staged, backups])
-						definitions.each{|definition| definition.write_to(File.join(staged, definition.name))}
-						changes = []
-						begin
-							exclusion&.apply
-							(names + stale).each do |name|
-								destination = File.join(@skills_path, name)
-								backup = File.join(backups, name)
-								previous = File.exist?(destination) || File.symlink?(destination)
-								File.rename(destination, backup) if previous
-								changes << [name, previous]
-								File.rename(File.join(staged, name), destination) if names.include?(name)
-							end
-						rescue
-							changes.reverse_each do |name, previous|
-								destination = File.join(@skills_path, name)
-								FileUtils.rm_rf(destination)
-								File.rename(File.join(backups, name), destination) if previous
-							end
-							exclusion&.restore
-							raise
+						
+						definitions.each do |definition|
+							definition.write_to(File.join(staged, definition.name))
+						end
+						
+						replace_skills(staged, backups, names, stale, exclusion)
+					end
+					
+					names
+				end
+				
+				def validate_destinations(definitions, owners)
+					definitions.each do |definition|
+						owner = owners[definition.name]
+						destination = File.join(@skills_path, definition.name)
+						
+						if owner && owner.values_at("ecosystem", "package") != ["gem", definition.provider_name]
+							raise Conflict, "Skill #{definition.name.inspect} belongs to #{owner["ecosystem"]}:#{owner["package"]}"
+						end
+						
+						if (File.exist?(destination) || File.symlink?(destination)) && !owner
+							raise Conflict, "Skill #{definition.name.inspect} is not managed by Agent Context"
 						end
 					end
-					names
+				end
+				
+				def replace_skills(staged, backups, names, stale, exclusion)
+					changes = []
+					begin
+						exclusion&.apply
+						
+						(names + stale).each do |name|
+							destination = File.join(@skills_path, name)
+							backup = File.join(backups, name)
+							previous = File.exist?(destination) || File.symlink?(destination)
+							
+							File.rename(destination, backup) if previous
+							changes << [name, previous]
+							File.rename(File.join(staged, name), destination) if names.include?(name)
+						end
+					rescue
+						changes.reverse_each do |name, previous|
+							destination = File.join(@skills_path, name)
+							FileUtils.rm_rf(destination)
+							File.rename(File.join(backups, name), destination) if previous
+						end
+						
+						exclusion&.restore
+						raise
+					end
 				end
 			end
 		end

@@ -20,7 +20,11 @@ module Agent
 				# @parameter provider_version [String] The provider version.
 				# @parameter source_file [String] The source context document.
 				# @parameter document [String] Generated skill instructions.
-				def initialize(name:, description:, path:, provider_name:, provider_version:, source_file:, document:)
+				def initialize(
+					name:, description:, path:,
+					provider_name:, provider_version:,
+					source_file:, document:
+				)
 					@name = name
 					@description = description
 					@path = path
@@ -32,14 +36,19 @@ module Agent
 				
 				# @attribute [String] The installed skill name.
 				attr_reader :name
+				
 				# @attribute [String] When to use the skill.
 				attr_reader :description
+				
 				# @attribute [String | Nil] The companion resource directory.
 				attr_reader :path
+				
 				# @attribute [String] The provider gem.
 				attr_reader :provider_name
+				
 				# @attribute [String] The provider version.
 				attr_reader :provider_version
+				
 				# @attribute [String] The source context document.
 				attr_reader :source_file
 				
@@ -53,6 +62,7 @@ module Agent
 				def write_to(destination)
 					FileUtils.mkdir_p(destination)
 					copy_resources(@path, destination, true) if @path
+					
 					File.write(File.join(destination, "SKILL.md"), @document)
 					Ownership.write(destination, @provider_name, @provider_version)
 				end
@@ -64,12 +74,15 @@ module Agent
 						from = File.join(source, name)
 						to = File.join(destination, name)
 						metadata = File.lstat(from)
+						
 						if metadata.symlink? || (!metadata.file? && !metadata.directory?)
 							raise Installer::InvalidSkill, "Skill resources must be regular files or directories: #{from}"
 						end
+						
 						if top_level && ["skill.md", Ownership::FILE_NAME].include?(name.downcase)
 							raise Installer::InvalidSkill, "#{name} is reserved for generated skill files: #{from}"
 						end
+						
 						if metadata.directory?
 							FileUtils.mkdir_p(to)
 							copy_resources(from, to, false)

@@ -137,6 +137,18 @@ describe Agent::Context::Skills::Installer do
 			expect(File.read(File.join(destination, "SKILL.md"))).to be == "project-owned"
 		end
 		
+		it "reports a file occupying the skills directory" do
+			destination = File.join(consumer_root, ".agents", "skills")
+			FileUtils.mkdir_p(File.dirname(destination))
+			File.write(destination, "project-owned")
+			
+			expect do
+				installer.install
+			end.to raise_exception(Agent::Context::Skills::Installer::Conflict)
+			
+			expect(File.read(destination)).to be == "project-owned"
+		end
+		
 		it "refuses duplicate skill names from different gems before installation" do
 			second_root = Dir.mktmpdir
 			write_skill(second_root, "ruby-testing", description: "Another implementation.")
@@ -175,6 +187,39 @@ describe Agent::Context::Skills::Installer do
 		it "does not discover documents without skill metadata" do
 			File.write(File.join(provider_root, "context/ruby-testing.md"), "# Plain guidance\n")
 			expect(installer.find_gems_with_skills).to be == []
+		end
+		
+		it "reports unsupported context types before installation" do
+			file = File.join(provider_root, "context/ruby-testing.md")
+			File.write(file, "---\ntype: unknown\n---\n\n# Instructions\n")
+			
+			expect do
+				installer.install
+			end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
+			
+			expect(File).not.to be(:exist?, installer.skills_path)
+		end
+		
+		it "requires a nonempty string description" do
+			[nil, 123, "   "].each do |description|
+				write_skill(provider_root, "ruby-testing", description: description)
+				
+				expect do
+					installer.install
+				end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
+			end
+			
+			expect(File).not.to be(:exist?, installer.skills_path)
+		end
+		
+		it "requires a directory for companion resources" do
+			File.write(File.join(provider_root, "context/ruby-testing"), "Not a directory")
+			
+			expect do
+				installer.install
+			end.to raise_exception(Agent::Context::Skills::Installer::InvalidSkill)
+			
+			expect(File).not.to be(:exist?, installer.skills_path)
 		end
 	end
 	

@@ -9,8 +9,16 @@ require "agent/context/skills/installer"
 # @parameter gem [String | Nil] An optional provider gem.
 def list(gem: nil)
 	installer = Agent::Context::Skills::Installer.new(root: context.root)
-	skills = gem ? Array(installer.list_skills(gem)) : installer.find_gems_with_skills.flat_map{|provider| provider[:skills]}
-	skills.each{|skill| puts "#{skill.name} (#{skill.provider_name}@#{skill.provider_version}) — #{skill.description}"}
+	skills = if gem
+		Array(installer.list_skills(gem))
+	else
+		installer.find_gems_with_skills.flat_map{|provider| provider[:skills]}
+	end
+	
+	skills.each do |skill|
+		puts "#{skill.name} (#{skill.provider_name}@#{skill.provider_version}) — #{skill.description}"
+	end
+	
 	puts "No dependency skills found" if skills.empty?
 end
 
@@ -18,8 +26,10 @@ end
 # @parameter gem [String] The provider gem.
 # @parameter skill [String] The installed skill name.
 def show(gem:, skill:)
-	content = Agent::Context::Skills::Installer.new(root: context.root).show_skill(gem, skill)
+	installer = Agent::Context::Skills::Installer.new(root: context.root)
+	content = installer.show_skill(gem, skill)
 	raise ArgumentError, "No skill #{skill.inspect} in gem #{gem.inspect}" unless content
+	
 	puts content
 end
 
@@ -27,6 +37,8 @@ end
 # @parameter gem [String | Nil] An optional provider gem.
 # @parameter skill [String | Nil] An optional installed skill name.
 def install(gem: nil, skill: nil)
-	names = Agent::Context::Skills::Installer.new(root: context.root).install(gem: gem, skill: skill)
+	installer = Agent::Context::Skills::Installer.new(root: context.root)
+	names = installer.install(gem: gem, skill: skill)
+	
 	puts names.empty? ? "No dependency skills were installed" : "Installed skills: #{names.join(", ")}"
 end

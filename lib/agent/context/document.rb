@@ -31,8 +31,20 @@ module Agent
 			def self.parse(content, path:)
 				parts = Markly.parse(content, flags: Markly::FRONT_MATTER).to_a
 				front_matter = parts.first if parts.first&.type == :front_matter
-				metadata = front_matter ? YAML.safe_load(front_matter.string_content, permitted_classes: [Date, Time], aliases: false, fallback: {}) : {}
+				
+				metadata = if front_matter
+					YAML.safe_load(
+						front_matter.string_content,
+						permitted_classes: [Date, Time],
+						aliases: false,
+						fallback: {},
+					)
+				else
+					{}
+				end
+				
 				raise Invalid, "Context frontmatter must be a mapping: #{path}" unless metadata.is_a?(Hash)
+				
 				new(path, content, parts, front_matter, metadata)
 			rescue Psych::Exception => error
 				raise Invalid, "Invalid YAML frontmatter in #{path}: #{error.message}"
@@ -57,7 +69,9 @@ module Agent
 			
 			# @returns [String] The original Markdown body after the front matter node.
 			def body
-				@front_matter ? @content.lines.drop(@front_matter.source_position[:end_line]).join : @content
+				return @content unless @front_matter
+				
+				@content.lines.drop(@front_matter.source_position[:end_line]).join
 			end
 			
 			# @returns [String] The first heading or a filename-derived title.
@@ -71,8 +85,10 @@ module Agent
 				explicit = @metadata["description"]
 				raise ArgumentError, "Context description must be a string: #{@path}" if explicit && !explicit.is_a?(String)
 				return explicit.strip if explicit && !explicit.strip.empty?
+				
 				paragraph = @parts.find{|part| part.type == :paragraph}
 				return unless paragraph
+				
 				plain_text(paragraph).split(/(?<=[.!?])\s+/, 2).first
 			end
 			
