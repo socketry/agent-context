@@ -107,6 +107,31 @@ describe Agent::Context::Index do
 		expect(index.generate_index).to be(:include?, "Guide")
 	end
 	
+	it "scopes Git exclusions to each project in a repository" do
+		system("git", "init", "--quiet", directory, exception: true)
+		exclusion = Agent::Context::Skills::Exclusion
+		["", "apps/web [dev]", "apps/worker"].each do |relative|
+			root = File.join(directory, relative)
+			FileUtils.mkdir_p(root)
+			exclusion.new(root, ["provider-old"]).apply
+		end
+		exclusion.new(File.join(directory, "apps/web [dev]"), ["provider-new"]).apply
+		exclusion.new(directory, ["provider-old"]).apply
+		
+		{
+			".agents/skills/provider-old/SKILL.md" => true,
+			"apps/worker/.agents/skills/provider-old/SKILL.md" => true,
+			"apps/web [dev]/.agents/context/index.md" => true,
+			"apps/web [dev]/.agents/skills/provider-new/SKILL.md" => true,
+			"apps/web [dev]/.agents/skills/provider-old/SKILL.md" => false,
+			"apps/web [dev]/.agents/skills/project-local/SKILL.md" => false,
+			"apps/web d/.agents/skills/provider-new/SKILL.md" => false,
+		}.each do |path, ignored|
+			_, status = Open3.capture2e("git", "check-ignore", "--quiet", path, chdir: directory)
+			expect(status.success?).to be == ignored
+		end
+	end
+	
 	it "maintains local exclusions without hiding project-owned instructions or skills" do
 		system("git", "init", "--quiet", directory, exception: true)
 		exclude = File.join(directory, ".git", "info", "exclude")

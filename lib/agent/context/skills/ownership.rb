@@ -33,8 +33,12 @@ module Agent
 				# @returns [Hash | Nil] Ownership when the skill has an installation record.
 				def self.load(directory)
 					path = File.join(directory, FILE_NAME)
-					return unless File.exist?(path) || File.symlink?(path)
-					raise Invalid, "Skill ownership must be a regular file: #{path}" unless File.lstat(path).file?
+					begin
+						stat = File.lstat(path)
+					rescue Errno::ENOENT
+						return
+					end
+					raise Invalid, "Skill ownership must be a regular file: #{path}" unless stat.file?
 					owner = JSON.parse(File.read(path))
 					unless owner.is_a?(Hash) && owner.values_at("ecosystem", "package", "version").all?{|value| value.is_a?(String) && !value.strip.empty?}
 						raise Invalid, "Invalid skill ownership: #{path}"
@@ -48,8 +52,12 @@ module Agent
 				# @parameter directory [String] The installed skills root.
 				# @returns [Hash(String, Hash)] Skill names and their installation records.
 				def self.scan(directory)
-					return {} unless File.exist?(directory) || File.symlink?(directory)
-					raise Invalid, "Skill installation path must be a regular directory: #{directory}" unless File.lstat(directory).directory?
+					begin
+						stat = File.lstat(directory)
+					rescue Errno::ENOENT
+						return {}
+					end
+					raise Invalid, "Skill installation path must be a regular directory: #{directory}" unless stat.directory?
 					Dir.children(directory).sort.each_with_object({}) do |name, owners|
 						path = File.join(directory, name)
 						next unless File.lstat(path).directory?

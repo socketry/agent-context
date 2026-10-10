@@ -380,6 +380,24 @@ describe Agent::Context::Skills::Installer do
 		mock(File).clear
 	end
 	
+	it "reports inaccessible ownership before changing installed files or exclusions" do
+		system("git", "init", "--quiet", consumer_root, exception: true)
+		installer.install
+		skill_path = File.join(consumer_root, ".agents/skills/fake-gem-ruby-testing")
+		previous = Dir.children(skill_path).to_h{|name| [name, File.read(File.join(skill_path, name))]}
+		exclude = File.join(consumer_root, ".git/info/exclude")
+		previous_exclude = File.read(exclude)
+		write_skill(provider_root, "ruby-testing", description: "Updated workflow.")
+		begin
+			File.chmod(0o400, skill_path)
+			expect{installer.install}.to raise_exception(Errno::EACCES)
+		ensure
+			File.chmod(0o700, skill_path)
+		end
+		expect(Dir.children(skill_path).to_h{|name| [name, File.read(File.join(skill_path, name))]}).to be == previous
+		expect(File.read(exclude)).to be == previous_exclude
+	end
+	
 	it "works without Git and refuses malformed generated exclusion blocks" do
 		mock(Open3).before(:capture2e){raise Errno::ENOENT, "Git unavailable"}
 		expect(installer.install).to be == ["fake-gem-ruby-testing"]

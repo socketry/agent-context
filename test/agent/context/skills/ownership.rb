@@ -40,6 +40,7 @@ describe Agent::Context::Skills::Ownership do
 		[
 			"{invalid json}",
 			[].to_json,
+			["gem", "provider", "1.0.0"].to_json,
 			{"ecosystem" => "gem", "package" => " ", "version" => "1.0.0"}.to_json,
 		].each do |content|
 			File.write(File.join(skill_path, "skill.json"), content)
@@ -47,6 +48,15 @@ describe Agent::Context::Skills::Ownership do
 				subject.scan(directory)
 			end.to raise_exception(subject::Invalid)
 		end
+	end
+	
+	it "reports inaccessible ownership files and installation roots" do
+		subject.write(skill_path, "provider", "1.0.0")
+		File.chmod(0o400, skill_path)
+		expect{subject.load(skill_path)}.to raise_exception(Errno::EACCES)
+		expect{subject.scan(File.join(skill_path, "skills"))}.to raise_exception(Errno::EACCES)
+	ensure
+		File.chmod(0o700, skill_path)
 	end
 	
 	it "requires regular ownership files and skill directories" do

@@ -84,7 +84,7 @@ module Agent
 				return nil unless gem
 				
 				skill_paths = Array(@skills.list_skills(gem_name)).flat_map{|skill| [skill.source_file, skill.path].compact}
-				Dir.glob(File.join(gem[:path], "**/*")).select do |file|
+				Dir.glob(File.join(gem[:path], "**/*"), File::FNM_DOTMATCH).select do |file|
 					File.file?(file) && !File.symlink?(file) && !skill_paths.any?{|path| file == path || file.start_with?("#{path}/")}
 				end
 			end

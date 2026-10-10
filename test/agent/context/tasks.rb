@@ -50,6 +50,7 @@ describe "Agent Context tasks" do
 			end.to raise_exception(ArgumentError)
 			context.call("agent:context:skill:install", "--gem", "provider", "--skill", "provider-workflow")
 			context.call("agent:context:install", "--gem", "provider")
+			context.call("agent:context:index")
 			expect(output.join("\n")).to be(:include?, "Provider Guide")
 			expect(output.join("\n")).to be(:include?, "provider-workflow (provider@1.0.0)")
 			expect(output.join("\n")).to be(:include?, "Installed skills: provider-workflow")

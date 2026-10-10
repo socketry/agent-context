@@ -125,6 +125,18 @@ describe Agent::Context::Installer do
 				expect(result).to be_falsey
 			end
 			
+			it "installs dotfiles and files inside hidden context directories" do
+				File.write(File.join(context_path, ".env.example"), "SETTING=value\n")
+				FileUtils.mkdir_p(File.join(context_path, ".config"))
+				File.write(File.join(context_path, ".config/settings.yaml"), "setting: value\n")
+				helper = subject.new(root: @target_path, specifications: @specifications)
+				helper.install
+				
+				target = File.join(helper.context_path, "fake-gem")
+				expect(File.read(File.join(target, ".env.example"))).to be == "SETTING=value\n"
+				expect(File.read(File.join(target, ".config/settings.yaml"))).to be == "setting: value\n"
+			end
+			
 			it "can install context from all gems" do
 				helper = subject.new(root: @target_path, specifications: @specifications)
 				
