@@ -19,21 +19,22 @@ module Agent
 				# Prepare exclusions while preserving repository-owned rules.
 				# @parameter root [String] The consuming project root.
 				# @parameter names [Array(String)] All dependency-owned skills.
-				def initialize(root, names)
+				# @returns [Exclusion | Nil] The prepared update when Git is available for this project.
+				def self.prepare(root, names)
 					output, status = Open3.capture2e("git", "rev-parse", "--show-prefix", "--git-path", "info/exclude", chdir: root)
 					return unless status.success?
 					prefix, path = output.lines(chomp: true)
-					@path = File.expand_path(path, root)
+					path = File.expand_path(path, root)
 					begin_marker = "#{BEGIN_MARKER} #{prefix}".rstrip
 					end_marker = "#{END_MARKER} #{prefix}".rstrip
 					pattern = prefix.gsub(/[\\*?\[\]]/){|character| "\\#{character}"}
-					@original = File.exist?(@path) ? File.read(@path) : ""
-					lines = @original.lines(chomp: true)
+					original = File.exist?(path) ? File.read(path) : ""
+					lines = original.lines(chomp: true)
 					begins = lines.each_index.select{|index| lines[index].strip == begin_marker}
 					ends = lines.each_index.select{|index| lines[index].strip == end_marker}
 					unless begins.empty? && ends.empty?
 						unless begins.length == 1 && ends.length == 1 && begins.first < ends.first
-							raise Ownership::Invalid, "Malformed Agent Context exclusion block: #{@path}"
+							raise Ownership::Invalid, "Malformed Agent Context exclusion block: #{path}"
 						end
 						lines.slice!(begins.first..ends.first)
 					end
@@ -46,20 +47,30 @@ module Agent
 						*names.sort.map{|name| "/#{pattern}.agents/skills/#{name}/"},
 						end_marker,
 					])
-					@updated = lines.join("\n") + "\n"
+					new(path, original, lines.join("\n") + "\n")
 				rescue Errno::ENOENT
 					# Installation also works when Git is unavailable:
-					@path = nil
+					nil
+				end
+				
+				# Initialize a prepared exclusion update.
+				# @parameter path [String] The Git exclusion file path.
+				# @parameter original [String] The original file contents.
+				# @parameter updated [String] The prepared file contents.
+				def initialize(path, original, updated)
+					@path = path
+					@original = original
+					@updated = updated
 				end
 				
 				# Apply the prepared exclusion block.
 				def apply
-					write(@updated) if @path && @updated != @original
+					write(@updated) if @updated != @original
 				end
 				
 				# Restore exclusions if installation fails.
 				def restore
-					write(@original) if @path && @updated != @original
+					write(@original) if @updated != @original
 				end
 				
 				private

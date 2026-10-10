@@ -41,7 +41,7 @@ module Agent
 				end
 				root = File.dirname(File.dirname(@context_path))
 				owners = Skills::Ownership.scan(File.join(root, ".agents", "skills"))
-				Skills::Exclusion.new(root, owners.keys).apply
+				Skills::Exclusion.prepare(root, owners.keys)&.apply
 			end
 			
 			# Render links relative to the generated index, preserving custom provider metadata.

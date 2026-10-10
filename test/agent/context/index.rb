@@ -113,10 +113,10 @@ describe Agent::Context::Index do
 		["", "apps/web [dev]", "apps/worker"].each do |relative|
 			root = File.join(directory, relative)
 			FileUtils.mkdir_p(root)
-			exclusion.new(root, ["provider-old"]).apply
+			exclusion.prepare(root, ["provider-old"]).apply
 		end
-		exclusion.new(File.join(directory, "apps/web [dev]"), ["provider-new"]).apply
-		exclusion.new(directory, ["provider-old"]).apply
+		exclusion.prepare(File.join(directory, "apps/web [dev]"), ["provider-new"]).apply
+		exclusion.prepare(directory, ["provider-old"]).apply
 		
 		{
 			".agents/skills/provider-old/SKILL.md" => true,

@@ -191,7 +191,7 @@ module Agent
 					names = definitions.map(&:name)
 					owned = owners.select{|_name, owner| owner["ecosystem"] == "gem" && (!package || owner["package"] == package)}
 					stale = reconcile ? owned.keys - names : []
-					exclusion = Exclusion.new(@root, (owners.keys - stale + names).uniq)
+					exclusion = Exclusion.prepare(@root, (owners.keys - stale + names).uniq)
 					FileUtils.mkdir_p(@skills_path)
 					Dir.mktmpdir(".agent-context-staging-", @skills_path) do |stage|
 						staged = File.join(stage, "new")
@@ -200,7 +200,7 @@ module Agent
 						definitions.each{|definition| definition.write_to(File.join(staged, definition.name))}
 						changes = []
 						begin
-							exclusion.apply
+							exclusion&.apply
 							(names + stale).each do |name|
 								destination = File.join(@skills_path, name)
 								backup = File.join(backups, name)
@@ -215,7 +215,7 @@ module Agent
 								FileUtils.rm_rf(destination)
 								File.rename(File.join(backups, name), destination) if previous
 							end
-							exclusion.restore
+							exclusion&.restore
 							raise
 						end
 					end
